@@ -5,13 +5,15 @@ scene:
   max_time: 60
   precision: 1
   size: "600 400"
-ayne
+
 objects:
   - id: "branch_box"
     shape: "rect"
-    styles:
+    style:
       rounded: 20
+      fill: "none"
       stroke: "red"
+      stroke-width: 2
   - id: "wire"
     shape: "rect"
   - id: "my_ellipse"
@@ -30,10 +32,10 @@ timelines:
     moments:
       - id: "branch_appear"
         start: 0
-        end: 1
+        end: 2
         ease: "inOutCubic"
         z_index: 2
-        operation:
+        operations:
           - name: "scale"
             select: "branch_box"
             dimensions: "0 -> 300 200"
@@ -41,20 +43,20 @@ timelines:
 
       - id: "branch_fork"
         start: 2
-        end: 4
+        end: 3
         z_index: 2
-        operation:
+        operations:
           - name: "scale"
             select: "wire"
-            dimensions: "2 0 -> 2 30"
-            location: "170 200"
+            dimensions: "1 0 -> 1 30"
+            location: "170 220"
 
       - id: "move_sun"
         start: 0
-        end: 5
+        end: 3
         z_index: 0
         loop: true
-        operation:
+        operations:
           - name: "move"
             select: "my_ellipse"
-            location: "-50 -150 -> 650 -150"
+            location: "-250 -150 -> 850 -150"
