@@ -1,4 +1,4 @@
-import { SVG, Timeline, type Shape } from '@svgdotjs/svg.js'
+import { SVG, Timeline, type Element } from '@svgdotjs/svg.js'
 import type { CompiledScene } from './scene.ts'
 
 const eases: Record<string, (time: number) => number> = {
@@ -7,6 +7,11 @@ const eases: Record<string, (time: number) => number> = {
     ? 4 * time * time * time
     : 1 - Math.pow(-2 * time + 2, 3) / 2,
 }
+
+export const segmentText = (content: string) => Array.from(
+  new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(content),
+  ({ segment }) => segment,
+)
 
 export function mountScene(container: HTMLElement, scene: CompiledScene) {
   container.replaceChildren()
@@ -27,17 +32,43 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     }
   }
 
-  const elements = new Map<string, Shape>()
+  const elements = new Map<string, Element>()
+  const textboxes = new Map<string, { node: HTMLElement; graphemes: string[] }>()
   for (const object of [...scene.objects].sort(
     (left, right) => layers.get(left.id)! - layers.get(right.id)!,
   )) {
+    if (object.shape === 'textbox') {
+      const element = draw.group()
+      const foreignObject = element.foreignObject(object.size.x, object.size.y)
+      const node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+      node.textContent = object.content
+      node.style.cssText = [
+        'width:100%',
+        'height:100%',
+        'overflow:hidden',
+        `white-space:${object.style.wrap ? 'normal' : 'nowrap'}`,
+        `font-size:${object.style['font-size']}px`,
+        `font-family:${object.style['font-family']}`,
+        ...(object.style.fill === undefined ? [] : [`color:${object.style.fill}`]),
+      ].join(';')
+      foreignObject.node.append(node)
+      element
+        .clipWith(draw.rect(object.size.x, object.size.y))
+        .timeline(timeline)
+        .transform({ translate: [object.position.x, object.position.y] })
+        .attr('data-object-id', object.id)
+      elements.set(object.id, element)
+      textboxes.set(object.id, { node, graphemes: segmentText(object.content) })
+      continue
+    }
+
     const element = object.shape === 'rect'
       ? draw.rect(object.size.x, object.size.y)
       : draw.ellipse(object.size.x, object.size.y)
 
     element
       .timeline(timeline)
-      .move(object.location.x, object.location.y)
+      .move(object.position.x, object.position.y)
       .attr('data-object-id', object.id)
     if (object.style.fill !== undefined) element.fill(object.style.fill)
     if (object.style.stroke !== undefined) element.stroke(object.style.stroke)
@@ -61,12 +92,37 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         const runner = element.animate(duration, moment.start * 1000, 'absolute').ease(ease)
 
         if (operation.name === 'move') {
-          element.move(operation.location.start.x, operation.location.start.y)
-          runner.move(operation.location.end.x, operation.location.end.y)
-        } else {
+          if (textboxes.has(operation.objectId)) {
+            element.transform({
+              translate: [operation.location.start.x, operation.location.start.y],
+            })
+            runner.transform({
+              translate: [operation.location.end.x, operation.location.end.y],
+            })
+          } else {
+            element.move(operation.location.start.x, operation.location.start.y)
+            runner.move(operation.location.end.x, operation.location.end.y)
+          }
+        } else if (operation.name === 'scale') {
           element.size(operation.dimensions.start.x, operation.dimensions.start.y)
           if (operation.location) element.move(operation.location.x, operation.location.y)
           runner.size(operation.dimensions.end.x, operation.dimensions.end.y)
+        } else if (operation.name === 'typewriter') {
+          const textbox = textboxes.get(operation.objectId)!
+          textbox.node.textContent = ''
+          runner.during((position: number) => {
+            textbox.node.textContent = textbox.graphemes
+              .slice(0, Math.floor(textbox.graphemes.length * ease(position)))
+              .join('')
+          })
+        } else {
+          const textbox = textboxes.get(operation.objectId)!
+          textbox.node.style.fontSize = `${operation.size.start}px`
+          runner.during((position: number) => {
+            const progress = ease(position)
+            textbox.node.style.fontSize = `${operation.size.start
+              + (operation.size.end - operation.size.start) * progress}px`
+          })
         }
         if (moment.loop) runner.loop()
       }

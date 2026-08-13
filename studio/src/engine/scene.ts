@@ -5,19 +5,37 @@ export type Coordinate = {
   end?: Point
 }
 
-export type SceneObject = {
+type ShapeStyle = {
+  fill?: string
+  stroke?: string
+  'stroke-width'?: number
+  rounded?: number
+}
+
+type ShapeObject = {
   id: string
   shape: 'rect' | 'ellipse'
-  location: Point
+  position: Point
   size: Point
-  style: {
-    fill?: string
-    stroke?: string
-    'stroke-width'?: number
-    rounded?: number
+  style: ShapeStyle
+  group?: string
+}
+
+export type TextboxObject = {
+  id: string
+  shape: 'textbox'
+  position: Point
+  size: Point
+  content: string
+  style: ShapeStyle & {
+    wrap: boolean
+    'font-size': number
+    'font-family': string
   }
   group?: string
 }
+
+export type SceneObject = ShapeObject | TextboxObject
 
 export type CompiledOperation =
   | {
@@ -30,6 +48,15 @@ export type CompiledOperation =
       objectId: string
       dimensions: { start: Point; end: Point }
       location?: Point
+    }
+  | {
+      name: 'typewriter'
+      objectId: string
+    }
+  | {
+      name: 'font-resize'
+      objectId: string
+      size: { start: number; end: number }
     }
 
 export type CompiledMoment = {
@@ -68,6 +95,11 @@ const string = (value: unknown, label: string) => {
   if (typeof value !== 'string' || !value) {
     throw new TypeError(`${label} must be a non-empty string`)
   }
+  return value
+}
+
+const text = (value: unknown, label: string) => {
+  if (typeof value !== 'string') throw new TypeError(`${label} must be a string`)
   return value
 }
 
@@ -119,12 +151,24 @@ const transition = (value: unknown, label: string) => {
   return { start: coordinate.start, end: coordinate.end }
 }
 
-const compileStyle = (value: unknown, label: string) => {
+const scalarTransition = (value: unknown, label: string) => {
+  const source = string(value, label)
+  const parts = source.split('->').map((part) => part.trim())
+  if (parts.length !== 2 || parts.some((part) => !/^-?(?:\d+\.?\d*|\.\d+)$/.test(part))) {
+    throw new SyntaxError(`${label} must contain two numbers separated by ->`)
+  }
+  return { start: Number(parts[0]), end: Number(parts[1]) }
+}
+
+const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']) => {
   if (value === undefined) return {}
 
   const source = object(value, label)
   for (const key of Object.keys(source)) {
-    if (key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded') {
+    if (
+      key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded'
+      && !(shape === 'textbox' && (key === 'wrap' || key === 'font-size' || key === 'font-family'))
+    ) {
       throw new RangeError(`Unsupported style: ${key}`)
     }
   }
@@ -135,6 +179,13 @@ const compileStyle = (value: unknown, label: string) => {
       ? {}
       : { 'stroke-width': number(source['stroke-width'], `${label}.stroke-width`) }),
     ...(source.rounded === undefined ? {} : { rounded: number(source.rounded, `${label}.rounded`) }),
+    ...(source.wrap === undefined ? {} : { wrap: boolean(source.wrap, `${label}.wrap`) }),
+    ...(source['font-size'] === undefined
+      ? {}
+      : { 'font-size': number(source['font-size'], `${label}.font-size`) }),
+    ...(source['font-family'] === undefined
+      ? {}
+      : { 'font-family': string(source['font-family'], `${label}.font-family`) }),
   }
 }
 
@@ -152,27 +203,42 @@ export function compileScene(value: unknown): CompiledScene {
     const source = object(entry, `objects[${index}]`)
     const id = string(source.id, `objects[${index}].id`)
     const shape = string(source.shape, `objects[${index}].shape`)
-    if (shape !== 'rect' && shape !== 'ellipse') {
+    if (shape !== 'rect' && shape !== 'ellipse' && shape !== 'textbox') {
       throw new RangeError(`Unsupported shape: ${shape}`)
     }
     if (objectIds.has(id)) throw new RangeError(`Duplicate object id: ${id}`)
     objectIds.add(id)
 
-    return {
+    const base = {
       id,
       shape,
-      location: source.location === undefined
+      position: source.position === undefined
         ? { x: 0, y: 0 }
-        : staticCoordinate(source.location, `${id}.location`),
+        : staticCoordinate(source.position, `${id}.position`),
       size: source.size === undefined
         ? { x: 0, y: 0 }
         : staticCoordinate(source.size, `${id}.size`),
-      style: compileStyle(source.style, `${id}.style`),
+      style: compileStyle(source.style, `${id}.style`, shape),
       ...(source.group === undefined
         ? {}
         : { group: string(source.group, `${id}.group`) }),
-    } satisfies SceneObject
+    }
+
+    if (shape !== 'textbox') return base as ShapeObject
+    if (source.size === undefined) throw new TypeError(`${id}.size is required`)
+    const style = base.style as TextboxObject['style']
+    if (style.wrap === undefined) throw new TypeError(`${id}.style.wrap is required`)
+    if (style['font-size'] === undefined) throw new TypeError(`${id}.style.font-size is required`)
+    if (style['font-family'] === undefined) throw new TypeError(`${id}.style.font-family is required`)
+    return {
+      ...base,
+      shape: 'textbox',
+      content: text(source.content, `${id}.content`),
+      style,
+    } satisfies TextboxObject
   })
+
+  const objectsById = new Map(objects.map((object) => [object.id, object]))
 
   const momentIds = new Set<string>()
   const timelines = array(root.timelines, 'timelines').map((entry, timelineIndex) => {
@@ -214,6 +280,18 @@ export function compileScene(value: unknown): CompiledScene {
                 : { location: staticCoordinate(operation.location, `${momentId}.location`) }),
             }
           }
+          if (name === 'typewriter' || name === 'font-resize') {
+            if (objectsById.get(objectId)!.shape !== 'textbox') {
+              throw new RangeError(`${name} requires a textbox: ${objectId}`)
+            }
+            return name === 'typewriter'
+              ? { name, objectId }
+              : {
+                  name,
+                  objectId,
+                  size: scalarTransition(operation.size, `${momentId}.size`),
+                }
+          }
           throw new RangeError(`Unsupported operation: ${name}`)
         },
       )
@@ -235,7 +313,13 @@ export function compileScene(value: unknown): CompiledScene {
   const writes = timelines.flatMap(({ moments }) => moments.flatMap((moment) =>
     moment.operations.map((operation) => ({
       objectId: operation.objectId,
-      property: operation.name === 'move' ? 'location' : 'size',
+      property: operation.name === 'move'
+        ? 'location'
+        : operation.name === 'typewriter'
+          ? 'content'
+          : operation.name === 'font-resize'
+            ? 'font-size'
+            : 'size',
       start: moment.start,
       end: moment.loop ? maxTime : moment.end,
       momentId: moment.id,
