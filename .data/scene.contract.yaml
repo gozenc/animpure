@@ -29,7 +29,6 @@ objects:
     content: "Let’s explore capital preservation, regular income, and growth separately."
     style:
       fill: "#008080"
-      background: "red"
       wrap: true
       font-size: 24
       font-family: "SFUI"
