@@ -27,6 +27,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
   }
 
   const elements = new Map<string, Element>()
+  const paths = new Map<string, number>()
   const textboxes = new Map<string, { node: HTMLElement; graphemes: string[] }>()
   for (const object of [...scene.objects].sort(
     (left, right) => layers.get(left.id)! - layers.get(right.id)!,
@@ -58,9 +59,18 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
       continue
     }
 
-    const element = object.shape === 'rect'
-      ? draw.rect(object.size.x, object.size.y)
-      : draw.ellipse(object.size.x, object.size.y)
+    let element: Element
+    if (object.shape === 'path') {
+      const path = draw.path(object.d)
+      paths.set(object.id, path.length())
+      element = path
+    } else if (object.shape === 'rect') {
+      const rect = draw.rect(object.size.x, object.size.y)
+      if (object.style.rounded !== undefined) rect.radius(object.style.rounded)
+      element = rect
+    } else {
+      element = draw.ellipse(object.size.x, object.size.y)
+    }
 
     element
       .timeline(timeline)
@@ -71,8 +81,8 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     if (object.style['stroke-width'] !== undefined) {
       element.attr('stroke-width', object.style['stroke-width'])
     }
-    if (object.shape === 'rect' && object.style.rounded !== undefined) {
-      element.radius(object.style.rounded)
+    if (object.style['stroke-linecap'] !== undefined) {
+      element.attr('stroke-linecap', object.style['stroke-linecap'])
     }
     elements.set(object.id, element)
   }
@@ -110,7 +120,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
               .slice(0, Math.floor(textbox.graphemes.length * ease(position)))
               .join('')
           })
-        } else {
+        } else if (operation.name === 'font-resize') {
           const textbox = textboxes.get(operation.objectId)!
           textbox.node.style.fontSize = `${operation.size.start}px`
           runner.during((position: number) => {
@@ -118,6 +128,10 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
             textbox.node.style.fontSize = `${operation.size.start
               + (operation.size.end - operation.size.start) * progress}px`
           })
+        } else {
+          const length = paths.get(operation.objectId)!
+          element.attr({ 'stroke-dasharray': length, 'stroke-dashoffset': length })
+          runner.attr({ 'stroke-dashoffset': 0 })
         }
         if (moment.loop) runner.loop()
       }

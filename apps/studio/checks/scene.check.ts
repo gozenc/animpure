@@ -47,6 +47,37 @@ const textbox = compileScene({
 }).objects[0]
 assert.equal(textbox.style['line-height'], 1.2)
 assert.equal(textbox.style['font-weight'], 600)
+const pathScene = compileScene({
+  ...scene,
+  objects: [{
+    id: 'wire',
+    shape: 'path',
+    d: 'M 0 0 C 50 0 50 100 100 100',
+    style: { stroke: '#008080', 'stroke-width': 5, 'stroke-linecap': 'round' },
+  }],
+  timelines: [{
+    id: 'main',
+    moments: [{
+      id: 'draw-wire',
+      start: 0,
+      end: 1,
+      operations: [{ name: 'draw', select: 'wire' }],
+    }],
+  }],
+})
+assert.equal(pathScene.objects[0].shape, 'path')
+assert.equal(pathScene.objects[0].style['stroke-linecap'], 'round')
+assert.equal(pathScene.timelines[0].moments[0].operations[0].name, 'draw')
+assert.throws(() => compileScene({
+  ...scene,
+  timelines: [],
+  objects: [{
+    id: 'wire',
+    shape: 'path',
+    d: 'M 0 0 L 10 10',
+    style: { 'stroke-linecap': 'bump' },
+  }],
+}), /must be round or butt/)
 assert.throws(() => compileScene({
   ...scene,
   timelines: [{

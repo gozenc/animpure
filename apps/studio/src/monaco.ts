@@ -6,7 +6,8 @@ import { configureMonacoYaml } from 'monaco-yaml'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import '../../../node_modules/monaco-editor/esm/vs/editor/browser/coreCommands.js'
 import '../../../node_modules/monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor.js'
-import '../../../node_modules/monaco-editor/esm/vs/languages/definitions/yaml/register.js'
+// @ts-expect-error Monaco does not publish declarations for language definitions.
+import { language as yamlLanguage } from '../../../node_modules/monaco-editor/esm/vs/languages/definitions/yaml/yaml.js'
 
 type MonacoWindow = typeof globalThis & {
   MonacoEnvironment?: { getWorker: (_moduleId: string, label: string) => Worker }
@@ -30,16 +31,22 @@ export function configureYamlEditor(instance: Monaco) {
     inherit: true,
     colors: {
       'editor.background': '#171a1c',
+      'editor.foreground': '#d7d3c8',
       'editorCursor.foreground': '#ff8b68',
       'editor.selectionBackground': '#ff714d44',
       'editor.lineHighlightBackground': '#ffffff08',
+      'editorLineNumber.foreground': '#565d61',
+      'editorLineNumber.activeForeground': '#d7d3c8',
+      'editorIndentGuide.background1': '#30363a',
+      'editorIndentGuide.activeBackground1': '#596166',
     },
     rules: [
-      { token: 'key', foreground: '8fb4ff' },
+      { token: 'type', foreground: '8fb4ff' },
       { token: 'string', foreground: 'b8d99f' },
       { token: 'number', foreground: 'f0b27a' },
       { token: 'keyword', foreground: 'c3a6ff' },
-      { token: 'comment', foreground: '697277' },
+      { token: 'operators', foreground: 'ff8b68' },
+      { token: 'comment', foreground: '697277', fontStyle: 'italic' },
     ],
   })
   configureMonacoYaml(instance, {
@@ -49,5 +56,6 @@ export function configureYamlEditor(instance: Monaco) {
     hover: false,
     validate: false,
   })
+  instance.languages.setMonarchTokensProvider('yaml', yamlLanguage)
   yamlConfigured = true
 }

@@ -12,6 +12,7 @@ type ShapeStyle = {
   fill?: string
   stroke?: string
   'stroke-width'?: number
+  'stroke-linecap'?: 'round' | 'butt'
   rounded?: number
 }
 
@@ -20,6 +21,15 @@ type ShapeObject = {
   shape: 'rect' | 'ellipse'
   position: Point
   size: Point
+  style: ShapeStyle
+  group?: string
+}
+
+export type PathObject = {
+  id: string
+  shape: 'path'
+  position: Point
+  d: string
   style: ShapeStyle
   group?: string
 }
@@ -40,7 +50,7 @@ export type TextboxObject = {
   group?: string
 }
 
-export type SceneObject = ShapeObject | TextboxObject
+export type SceneObject = ShapeObject | PathObject | TextboxObject
 
 export type CompiledOperation =
   | {
@@ -62,6 +72,10 @@ export type CompiledOperation =
       name: 'font-resize'
       objectId: string
       size: { start: number; end: number }
+    }
+  | {
+      name: 'draw'
+      objectId: string
     }
 
 export type CompiledMoment = {
@@ -172,6 +186,7 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
   for (const key of Object.keys(source)) {
     if (
       key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded'
+      && !(shape === 'path' && key === 'stroke-linecap')
       && !(shape === 'textbox' && (
         key === 'wrap' || key === 'font-size' || key === 'font-family'
         || key === 'line-height' || key === 'font-weight'
@@ -180,12 +195,19 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
       throw new RangeError(`Unsupported style: ${key}`)
     }
   }
+  const linecap = source['stroke-linecap']
+  if (linecap !== undefined && linecap !== 'round' && linecap !== 'butt') {
+    throw new RangeError(`${label}.stroke-linecap must be round or butt`)
+  }
   return {
     ...(source.fill === undefined ? {} : { fill: string(source.fill, `${label}.fill`) }),
     ...(source.stroke === undefined ? {} : { stroke: string(source.stroke, `${label}.stroke`) }),
     ...(source['stroke-width'] === undefined
       ? {}
       : { 'stroke-width': number(source['stroke-width'], `${label}.stroke-width`) }),
+    ...(linecap === undefined
+      ? {}
+      : { 'stroke-linecap': linecap as 'round' | 'butt' }),
     ...(source.rounded === undefined ? {} : { rounded: number(source.rounded, `${label}.rounded`) }),
     ...(source.wrap === undefined ? {} : { wrap: boolean(source.wrap, `${label}.wrap`) }),
     ...(source['font-size'] === undefined
@@ -217,7 +239,7 @@ export function compileScene(value: unknown): CompiledScene {
     const source = object(entry, `objects[${index}]`)
     const id = string(source.id, `objects[${index}].id`)
     const shape = string(source.shape, `objects[${index}].shape`)
-    if (shape !== 'rect' && shape !== 'ellipse' && shape !== 'textbox') {
+    if (shape !== 'rect' && shape !== 'ellipse' && shape !== 'path' && shape !== 'textbox') {
       throw new RangeError(`Unsupported shape: ${shape}`)
     }
     if (objectIds.has(id)) throw new RangeError(`Duplicate object id: ${id}`)
@@ -238,6 +260,16 @@ export function compileScene(value: unknown): CompiledScene {
         : { group: string(source.group, `${id}.group`) }),
     }
 
+    if (shape === 'path') {
+      return {
+        id,
+        shape,
+        position: base.position,
+        d: string(source.d, `${id}.d`),
+        style: base.style,
+        ...(base.group === undefined ? {} : { group: base.group }),
+      } satisfies PathObject
+    }
     if (shape !== 'textbox') return base as ShapeObject
     if (source.size === undefined) throw new TypeError(`${id}.size is required`)
     const style = base.style as TextboxObject['style']
@@ -310,6 +342,12 @@ export function compileScene(value: unknown): CompiledScene {
                   size: scalarTransition(operation.size, `${momentId}.size`),
                 }
           }
+          if (name === 'draw') {
+            if (objectsById.get(objectId)!.shape !== 'path') {
+              throw new RangeError(`draw requires a path: ${objectId}`)
+            }
+            return { name, objectId }
+          }
           throw new RangeError(`Unsupported operation: ${name}`)
         },
       )
@@ -333,7 +371,9 @@ export function compileScene(value: unknown): CompiledScene {
       objectId: operation.objectId,
       property: operation.name === 'move'
         ? 'location'
-        : operation.name === 'typewriter'
+        : operation.name === 'draw'
+          ? 'stroke-dashoffset'
+          : operation.name === 'typewriter'
           ? 'content'
           : operation.name === 'font-resize'
             ? 'font-size'

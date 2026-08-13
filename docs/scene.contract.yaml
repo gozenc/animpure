@@ -41,9 +41,14 @@ objects:
       stroke: "#008080"
       stroke-width: 2
   - id: "wire"
-    shape: "rect"
+    shape: "path"
+    d: "M 0 0 L 0 500"
+    position: "299 295"
     style:
-      fill: "#008080"
+      fill: "none"
+      stroke: "#008080"
+      stroke-width: 5
+      stroke-linecap: "round"
   - id: "my_ellipse"
     shape: "ellipse"
     size: "250"
@@ -83,10 +88,8 @@ timelines:
         ease: "inOutCubic"
         z_index: 2
         operations:
-          - name: "scale"
+          - name: "draw"
             select: "wire"
-            dimensions: "5 0 -> 5 500"
-            location: "299 295"
 
       - id: "moving_up"
         start: 2
