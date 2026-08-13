@@ -1,12 +1,6 @@
 import { SVG, Timeline, type Element } from '@svgdotjs/svg.js'
+import { Eases } from './eases.ts'
 import type { CompiledScene } from './scene.ts'
-
-const eases: Record<string, (time: number) => number> = {
-  none: (time) => time,
-  inOutCubic: (time) => time < 0.5
-    ? 4 * time * time * time
-    : 1 - Math.pow(-2 * time + 2, 3) / 2,
-}
 
 export const segmentText = (content: string) => Array.from(
   new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(content),
@@ -49,6 +43,8 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         `white-space:${object.style.wrap ? 'normal' : 'nowrap'}`,
         `font-size:${object.style['font-size']}px`,
         `font-family:${object.style['font-family']}`,
+        ...(object.style['line-height'] === undefined ? [] : [`line-height:${object.style['line-height']}`]),
+        ...(object.style['font-weight'] === undefined ? [] : [`font-weight:${object.style['font-weight']}`]),
         ...(object.style.fill === undefined ? [] : [`color:${object.style.fill}`]),
       ].join(';')
       foreignObject.node.append(node)
@@ -83,8 +79,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
 
   for (const { moments } of scene.timelines) {
     for (const moment of moments) {
-      const ease = eases[moment.ease]
-      if (!ease) throw new RangeError(`Unsupported ease: ${moment.ease}`)
+      const ease = Eases[moment.ease]
 
       for (const operation of moment.operations) {
         const element = elements.get(operation.objectId)!

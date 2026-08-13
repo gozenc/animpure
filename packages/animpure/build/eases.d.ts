@@ -1,4 +1,4 @@
-import { EaseNames, EaseFunction } from "./types";
+import type { EaseNames, EaseFunction } from "./types";
 declare const Eases: {
     [name in EaseNames]: EaseFunction;
 };

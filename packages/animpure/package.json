@@ -1,0 +1,38 @@
+{
+  "name": "@gozenc/animpure",
+  "version": "0.0.7",
+  "author": "Fatih Gözenç",
+  "description": "Simple functional JavaScript animation library without any dependencies.",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "/build"
+  ],
+  "scripts": {
+    "build": "webpack"
+  },
+  "keywords": [
+    "animation",
+    "simple animate",
+    "no dependencies"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.8.3",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fatihgozenc/animpure.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fatihgozenc/animpure/issues"
+  },
+  "homepage": "https://github.com/fatihgozenc/animpure#readme"
+}

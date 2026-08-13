@@ -2,5 +2,4 @@
 **/tsconfig.json
 webpack.config.js
 node_modules
-src
-old
+packages/animpure/old

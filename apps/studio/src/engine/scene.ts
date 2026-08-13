@@ -1,4 +1,7 @@
+import { Eases } from './eases.ts'
+
 export type Point = { x: number; y: number }
+export type EaseName = keyof typeof Eases
 
 export type Coordinate = {
   start: Point
@@ -31,6 +34,8 @@ export type TextboxObject = {
     wrap: boolean
     'font-size': number
     'font-family': string
+    'line-height'?: number
+    'font-weight'?: number
   }
   group?: string
 }
@@ -63,7 +68,7 @@ export type CompiledMoment = {
   id: string
   start: number
   end: number
-  ease: string
+  ease: EaseName
   loop: boolean
   zIndex: number
   operations: CompiledOperation[]
@@ -167,7 +172,10 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
   for (const key of Object.keys(source)) {
     if (
       key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded'
-      && !(shape === 'textbox' && (key === 'wrap' || key === 'font-size' || key === 'font-family'))
+      && !(shape === 'textbox' && (
+        key === 'wrap' || key === 'font-size' || key === 'font-family'
+        || key === 'line-height' || key === 'font-weight'
+      ))
     ) {
       throw new RangeError(`Unsupported style: ${key}`)
     }
@@ -186,6 +194,12 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
     ...(source['font-family'] === undefined
       ? {}
       : { 'font-family': string(source['font-family'], `${label}.font-family`) }),
+    ...(source['line-height'] === undefined
+      ? {}
+      : { 'line-height': number(source['line-height'], `${label}.line-height`) }),
+    ...(source['font-weight'] === undefined
+      ? {}
+      : { 'font-weight': number(source['font-weight'], `${label}.font-weight`) }),
   }
 }
 
@@ -252,8 +266,12 @@ export function compileScene(value: unknown): CompiledScene {
 
       const start = number(moment.start, `${momentId}.start`)
       const end = number(moment.end, `${momentId}.end`)
+      const ease = moment.ease === undefined ? 'none' : string(moment.ease, `${momentId}.ease`)
       if (start < 0 || end <= start || end > maxTime) {
         throw new RangeError(`Invalid time range for moment: ${momentId}`)
+      }
+      if (!(ease in Eases)) {
+        throw new RangeError(`Unsupported ease: ${ease}. Supported: ${Object.keys(Eases).join(', ')}`)
       }
 
       const operations = array(moment.operations, `${momentId}.operations`).map(
@@ -300,7 +318,7 @@ export function compileScene(value: unknown): CompiledScene {
         id: momentId,
         start,
         end,
-        ease: moment.ease === undefined ? 'none' : string(moment.ease, `${momentId}.ease`),
+        ease: ease as EaseName,
         loop: moment.loop === undefined ? false : boolean(moment.loop, `${momentId}.loop`),
         zIndex: moment.z_index === undefined ? 0 : number(moment.z_index, `${momentId}.z_index`),
         operations,

@@ -1,4 +1,4 @@
-import { EaseNames, EaseFunction } from "./types";
+import type { EaseNames, EaseFunction } from "./types";
 
 const Eases: { [name in EaseNames]: EaseFunction } = {
     none: (t: number) => t,
