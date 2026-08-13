@@ -13,7 +13,13 @@ assert.deepEqual(parseCoordinate('20 5 -> 0'), {
 
 const scene = {
   name: 'check',
-  scene: { unit: 'px', max_time: 10, precision: 1, size: '600 400' },
+  scene: {
+    unit: 'px',
+    max_time: 10,
+    precision: 1,
+    size: '600 400',
+    style: { background: '#F5F5F5' },
+  },
   objects: [{ id: 'box', shape: 'rect', size: '10', position: '3 4' }],
   timelines: [{
     id: 'main',
@@ -28,6 +34,7 @@ const scene = {
 
 assert.deepEqual(compileScene(scene).objects[0].size, { x: 10, y: 10 })
 assert.deepEqual(compileScene(scene).objects[0].position, { x: 3, y: 4 })
+assert.equal(compileScene(scene).style.background, '#F5F5F5')
 const textbox = compileScene({
   ...scene,
   timelines: [],

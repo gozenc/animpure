@@ -104,6 +104,7 @@ export type CompiledScene = {
   maxTime: number
   precision: number
   size: Point
+  style: { background?: string }
   objects: SceneObject[]
   timelines: { id: string; moments: CompiledMoment[] }[]
 }
@@ -306,6 +307,7 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
 export function compileScene(value: unknown): CompiledScene {
   const root = object(value, 'scene document')
   const settings = object(root.scene, 'scene')
+  const sceneStyle = settings.style === undefined ? {} : object(settings.style, 'scene.style')
   const maxTime = number(settings.max_time, 'scene.max_time')
   const precision = number(settings.precision, 'scene.precision')
 
@@ -543,6 +545,11 @@ export function compileScene(value: unknown): CompiledScene {
     maxTime,
     precision,
     size: staticCoordinate(settings.size, 'scene.size'),
+    style: {
+      ...(sceneStyle.background === undefined
+        ? {}
+        : { background: string(sceneStyle.background, 'scene.style.background') }),
+    },
     objects,
     timelines,
   }

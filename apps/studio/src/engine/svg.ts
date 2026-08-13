@@ -39,6 +39,9 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     .addTo(container)
     .size('100%', '100%')
     .viewbox(0, 0, scene.size.x, scene.size.y)
+  if (scene.style.background !== undefined) {
+    draw.css('background-color', scene.style.background)
+  }
   const timeline = new Timeline(() => 0).persist(true).pause().time(0)
   const layers = new Map(scene.objects.map((object) => [object.id, 0]))
   const owners = new Map<string, string>()
