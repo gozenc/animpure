@@ -22,7 +22,7 @@ objects:
       line-height: 1
 
   - id: "first_response"
-    shape: "textbox" 
+    shape: "textbox"
     size: "450 300"
     position: "20 190"
     content: "Let’s explore capital preservation, regular income, and growth separately."
@@ -40,12 +40,15 @@ objects:
       fill: "none"
       stroke: "#008080"
       stroke-width: 2
-
   - id: "wire"
-    shape: "rect"
+    shape: "path"
+    d: "M 0 0 L 0 500"
+    position: "299 295"
     style:
-      fill: "#008080"
-
+      fill: "none"
+      stroke: "#008080"
+      stroke-width: 3
+      stroke-linecap: "round"
   - id: "my_ellipse"
     shape: "ellipse"
     size: "250"
@@ -85,10 +88,8 @@ timelines:
         ease: "inOutCubic"
         z_index: 2
         operations:
-          - name: "scale"
+          - name: "draw"
             select: "wire"
-            dimensions: "3 0 -> 3 500"
-            location: "299 295"
 
       - id: "moving_up"
         start: 2
@@ -114,4 +115,4 @@ timelines:
         operations:
           - name: "move"
             select: "my_ellipse"
-            location: "-250 70 -> 850 70"
+            location: "-250 0 -> 850 0"

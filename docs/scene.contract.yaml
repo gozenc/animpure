@@ -40,15 +40,16 @@ objects:
       fill: "none"
       stroke: "#008080"
       stroke-width: 2
-  - id: "wire"
-    shape: "path"
-    d: "M 0 0 L 0 500"
-    position: "299 295"
+
+  - id: "fork_wire"
+    shape: "straight"
+    coords: "300 295 | 300 400"
     style:
       fill: "none"
       stroke: "#008080"
       stroke-width: 5
       stroke-linecap: "round"
+
   - id: "my_ellipse"
     shape: "ellipse"
     size: "250"
@@ -89,7 +90,7 @@ timelines:
         z_index: 2
         operations:
           - name: "draw"
-            select: "wire"
+            select: "fork_wire"
 
       - id: "moving_up"
         start: 2
@@ -104,8 +105,8 @@ timelines:
             select: "first_response"
             location: "20 190 -> 20 -200"
           - name: "move"
-            select: "wire"
-            location: "299 295 -> 299 0"
+            select: "fork_wire"
+            location: "300 295 -> 300 0"
 
       - id: "move_sun"
         start: 0

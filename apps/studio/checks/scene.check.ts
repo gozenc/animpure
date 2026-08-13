@@ -47,12 +47,12 @@ const textbox = compileScene({
 }).objects[0]
 assert.equal(textbox.style['line-height'], 1.2)
 assert.equal(textbox.style['font-weight'], 600)
-const pathScene = compileScene({
+const straightScene = compileScene({
   ...scene,
   objects: [{
     id: 'wire',
-    shape: 'path',
-    d: 'M 0 0 C 50 0 50 100 100 100',
+    shape: 'straight',
+    coords: '300 295 | 300 400 | 400 400',
     style: { stroke: '#008080', 'stroke-width': 5, 'stroke-linecap': 'round' },
   }],
   timelines: [{
@@ -65,16 +65,34 @@ const pathScene = compileScene({
     }],
   }],
 })
-assert.equal(pathScene.objects[0].shape, 'path')
-assert.equal(pathScene.objects[0].style['stroke-linecap'], 'round')
-assert.equal(pathScene.timelines[0].moments[0].operations[0].name, 'draw')
+assert.equal(straightScene.objects[0].shape, 'straight')
+if (straightScene.objects[0].shape !== 'straight') throw new Error('Expected straight')
+assert.equal(straightScene.objects[0].d, 'M 300 295 L 300 400 L 400 400')
+assert.equal(straightScene.objects[0].style['stroke-linecap'], 'round')
+assert.equal(straightScene.timelines[0].moments[0].operations[0].name, 'draw')
+const curve = compileScene({
+  ...scene,
+  timelines: [],
+  objects: [{
+    id: 'curve',
+    shape: 'curve',
+    path: [
+      { start: '0' },
+      { line: '0 120' },
+      { curve: { 'control-1': '0 180', 'control-2': '60 220', to: '120 220' } },
+    ],
+  }],
+}).objects[0]
+assert.equal(curve.shape, 'curve')
+if (curve.shape !== 'curve') throw new Error('Expected curve')
+assert.equal(curve.d, 'M 0 0 L 0 120 C 0 180 60 220 120 220')
 assert.throws(() => compileScene({
   ...scene,
   timelines: [],
   objects: [{
     id: 'wire',
-    shape: 'path',
-    d: 'M 0 0 L 10 10',
+    shape: 'straight',
+    coords: '0 | 10',
     style: { 'stroke-linecap': 'bump' },
   }],
 }), /must be round or butt/)

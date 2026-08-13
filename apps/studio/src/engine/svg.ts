@@ -60,7 +60,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     }
 
     let element: Element
-    if (object.shape === 'path') {
+    if (object.shape === 'straight' || object.shape === 'curve') {
       const path = draw.path(object.d)
       paths.set(object.id, path.length())
       element = path
@@ -74,8 +74,10 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
 
     element
       .timeline(timeline)
-      .move(object.position.x, object.position.y)
       .attr('data-object-id', object.id)
+    if (object.shape === 'rect' || object.shape === 'ellipse') {
+      element.move(object.position.x, object.position.y)
+    }
     if (object.style.fill !== undefined) element.fill(object.style.fill)
     if (object.style.stroke !== undefined) element.stroke(object.style.stroke)
     if (object.style['stroke-width'] !== undefined) {

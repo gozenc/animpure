@@ -18,21 +18,18 @@ type ShapeStyle = {
 
 type ShapeObject = {
   id: string
-  shape: 'rect' | 'ellipse'
   position: Point
   size: Point
   style: ShapeStyle
   group?: string
-}
+} & ({ shape: 'rect' } | { shape: 'ellipse' })
 
 export type PathObject = {
   id: string
-  shape: 'path'
-  position: Point
   d: string
   style: ShapeStyle
   group?: string
-}
+} & ({ shape: 'straight' } | { shape: 'curve' })
 
 export type TextboxObject = {
   id: string
@@ -164,6 +161,52 @@ const staticCoordinate = (value: unknown, label: string) => {
   return coordinate.start
 }
 
+const pathPoint = ({ x, y }: Point) => `${x} ${y}`
+
+const compileStraight = (value: unknown, label: string) => {
+  const points = string(value, label).split('|').map(
+    (entry, index) => staticCoordinate(entry.trim(), `${label}[${index}]`),
+  )
+  if (points.length < 2) throw new RangeError(`${label} requires at least two coordinates`)
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pathPoint(point)}`).join(' ')
+}
+
+const compileCurve = (value: unknown, label: string) => {
+  const segments = array(value, label)
+  if (segments.length < 2) throw new RangeError(`${label} requires a start and at least one segment`)
+
+  return segments.map((entry, index) => {
+    const segment = object(entry, `${label}[${index}]`)
+    const keys = Object.keys(segment)
+    if (keys.length !== 1) throw new SyntaxError(`${label}[${index}] must contain one command`)
+
+    const command = keys[0]
+    if (index === 0) {
+      if (command !== 'start') throw new SyntaxError(`${label} must start with start`)
+      return `M ${pathPoint(staticCoordinate(segment.start, `${label}[0].start`))}`
+    }
+    if (command === 'line') {
+      return `L ${pathPoint(staticCoordinate(segment.line, `${label}[${index}].line`))}`
+    }
+    if (command === 'curve') {
+      const curve = object(segment.curve, `${label}[${index}].curve`)
+      const curveKeys = Object.keys(curve)
+      if (
+        curveKeys.length !== 3
+        || !['control-1', 'control-2', 'to'].every((key) => key in curve)
+      ) {
+        throw new SyntaxError(`${label}[${index}].curve requires control-1, control-2 and to`)
+      }
+      return `C ${[
+        staticCoordinate(curve['control-1'], `${label}[${index}].curve.control-1`),
+        staticCoordinate(curve['control-2'], `${label}[${index}].curve.control-2`),
+        staticCoordinate(curve.to, `${label}[${index}].curve.to`),
+      ].map(pathPoint).join(' ')}`
+    }
+    throw new RangeError(`Unsupported curve command: ${command}`)
+  }).join(' ')
+}
+
 const transition = (value: unknown, label: string) => {
   const coordinate = parseCoordinate(string(value, label))
   if (!coordinate.end) throw new SyntaxError(`${label} must contain ->`)
@@ -186,7 +229,7 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
   for (const key of Object.keys(source)) {
     if (
       key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded'
-      && !(shape === 'path' && key === 'stroke-linecap')
+      && !((shape === 'straight' || shape === 'curve') && key === 'stroke-linecap')
       && !(shape === 'textbox' && (
         key === 'wrap' || key === 'font-size' || key === 'font-family'
         || key === 'line-height' || key === 'font-weight'
@@ -239,7 +282,10 @@ export function compileScene(value: unknown): CompiledScene {
     const source = object(entry, `objects[${index}]`)
     const id = string(source.id, `objects[${index}].id`)
     const shape = string(source.shape, `objects[${index}].shape`)
-    if (shape !== 'rect' && shape !== 'ellipse' && shape !== 'path' && shape !== 'textbox') {
+    if (
+      shape !== 'rect' && shape !== 'ellipse' && shape !== 'straight'
+      && shape !== 'curve' && shape !== 'textbox'
+    ) {
       throw new RangeError(`Unsupported shape: ${shape}`)
     }
     if (objectIds.has(id)) throw new RangeError(`Duplicate object id: ${id}`)
@@ -260,12 +306,13 @@ export function compileScene(value: unknown): CompiledScene {
         : { group: string(source.group, `${id}.group`) }),
     }
 
-    if (shape === 'path') {
+    if (shape === 'straight' || shape === 'curve') {
       return {
         id,
         shape,
-        position: base.position,
-        d: string(source.d, `${id}.d`),
+        d: shape === 'straight'
+          ? compileStraight(source.coords, `${id}.coords`)
+          : compileCurve(source.path, `${id}.path`),
         style: base.style,
         ...(base.group === undefined ? {} : { group: base.group }),
       } satisfies PathObject
@@ -343,8 +390,9 @@ export function compileScene(value: unknown): CompiledScene {
                 }
           }
           if (name === 'draw') {
-            if (objectsById.get(objectId)!.shape !== 'path') {
-              throw new RangeError(`draw requires a path: ${objectId}`)
+            const shape = objectsById.get(objectId)!.shape
+            if (shape !== 'straight' && shape !== 'curve') {
+              throw new RangeError(`draw requires a straight or curve: ${objectId}`)
             }
             return { name, objectId }
           }
