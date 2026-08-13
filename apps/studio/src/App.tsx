@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Editor from '@monaco-editor/react'
+import { Pause, Repeat2, SkipBack } from 'lucide-react'
 import contract from '../../../docs/scene.contract.yaml?raw'
 import { mountScene } from './engine/svg.ts'
 import { compileYaml } from './engine/yaml.ts'
@@ -101,6 +102,21 @@ function App() {
 
   useEffect(() => () => cancelAnimationFrame(frame.current), [])
 
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && !document.activeElement?.closest('.monaco-editor')) {
+        event.preventDefault()
+        togglePlayback()
+      }
+      if (event.code === 'KeyS' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        void fetch('/api/scene', { method: 'PUT', body: source })
+      }
+    }
+    window.addEventListener('keydown', handleShortcut)
+    return () => window.removeEventListener('keydown', handleShortcut)
+  }, [playing, scene.maxTime, source, time])
+
   return (
     <main className="studio-shell">
       <header className="topbar">
@@ -126,7 +142,7 @@ function App() {
               aria-label="Scene YAML"
               value={source}
               language="yaml"
-              theme="vs-dark"
+              theme="animpure-yaml"
               beforeMount={configureYamlEditor}
               onChange={(value) => edit(value ?? '')}
               options={{
@@ -191,10 +207,10 @@ function App() {
 
       <footer className="transport">
         <button type="button" onClick={togglePlayback} aria-label={playing ? 'Pause' : 'Play'}>
-          {playing ? 'Ⅱ' : '▶'}
+          {playing ? <Pause /> : '▶'}
         </button>
-        <button type="button" onClick={() => { pause(); seek(0) }} aria-label="Reset">
-          ↺
+        <button type="button" onClick={() => { pause(); seek(0) }} aria-label="Restart">
+          <SkipBack />
         </button>
         <button
           type="button"
@@ -206,7 +222,7 @@ function App() {
             setRepeating(repeat.current)
           }}
         >
-          ↻
+          <Repeat2 />
         </button>
         <span className="timecode">{time.toFixed(2)}s</span>
         <input

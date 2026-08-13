@@ -1,7 +1,10 @@
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
+
+const scenePath = fileURLToPath(new URL('../../.data/scene.contract.yaml', import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -23,6 +26,22 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    babel({ presets: [reactCompilerPreset()] })
+    babel({ presets: [reactCompilerPreset()] }),
+    {
+      name: 'save-scene',
+      configureServer(server) {
+        server.middlewares.use('/api/scene', (request, response, next) => {
+          if (request.method !== 'PUT') return next()
+          let source = ''
+          request.on('data', (chunk) => { source += chunk })
+          request.on('end', () => {
+            mkdirSync(fileURLToPath(new URL('../../.data', import.meta.url)), { recursive: true })
+            writeFileSync(scenePath, source)
+            response.statusCode = 204
+            response.end()
+          })
+        })
+      },
+    },
   ],
 })

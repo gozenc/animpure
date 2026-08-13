@@ -100,9 +100,6 @@ timelines:
           - name: "move"
             select: "first_response"
             location: "20 190 -> 20 -200"
-          - name: "move"
-            select: "wire"
-            location: "299 295 -> 299 0"
 
       - id: "move_sun"
         start: 0

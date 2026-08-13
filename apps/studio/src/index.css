@@ -187,15 +187,21 @@ button:focus-visible, textarea:focus-visible, input:focus-visible {
 }
 
 .transport button {
+  display: grid;
+  place-items: center;
   width: 32px;
   height: 30px;
   border: 1px solid #3b4145;
   color: #e7e4da;
   background: #202427;
   cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .transport button:hover { border-color: #777f84; }
+.transport button svg { width: 18px; height: 18px; stroke-width: 1.8; }
+.transport .repeat-toggle svg { width: 21px; height: 21px; }
 .transport .repeat-toggle.is-active { color: #ff8b68; border-color: #ff714d; }
 .timecode { color: #ff8b68; text-align: right; }
 .duration, .rate { color: #7e8589; }
