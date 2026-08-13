@@ -77,19 +77,19 @@ timelines:
             select: "first_response"
             size: "24 -> 36"
 
-      - id: "branch_appear"
-        start: 3
-        end: 5
+      - id: "fork_branch"
+        start: 1
+        end: 3
         ease: "inOutCubic"
         z_index: 2
         operations:
           - name: "scale"
-            select: "branch_box"
-            dimensions: "0 -> 300 200"
-            location: "20 20"
+            select: "wire"
+            dimensions: "5 0 -> 5 500"
+            location: "299 295"
 
       - id: "moving_up"
-        start: 3
+        start: 2
         end: 5
         ease: "inOutCubic"
         z_index: 2
@@ -100,17 +100,6 @@ timelines:
           - name: "move"
             select: "first_response"
             location: "20 190 -> 20 -200"
-
-      - id: "branch_fork"
-        start: 1
-        end: 1.5
-        z_index: 2
-        ease: "inOutCubic"
-        operations:
-          - name: "scale"
-            select: "wire"
-            dimensions: "2 0 -> 2 30"
-            location: "170 220"
 
       - id: "move_sun"
         start: 0
