@@ -46,11 +46,11 @@ objects:
     coords: "300 295 | 300 600"
     forks:
       - id: "fork_1"
-        coords: "300 600 | 475 600 | 475 650"
+        coords: "300 600 | 350 600"
       - id: "fork_2"
         coords: "300 600 | 300 650"
       - id: "fork_3"
-        coords: "300 600 | 125 600 | 125 650"
+        coords: "300 600 | 250 600"
     style:
       fill: "none"
       stroke: "#008080"
@@ -61,7 +61,7 @@ objects:
     shape: "ellipse"
     size: "250"
     style:
-      fill: "#FFC517"
+      fill: "#e2e2e2"
 
 timelines:
   - id: "t_1"
@@ -89,15 +89,26 @@ timelines:
           - name: "font-resize"
             select: "first_response"
             size: "24 -> 36"
-          - name: "draw-underline"
-            word: "capital preservation"
+
+      - id: "underline_response"
+        start: 2
+        end: 2.6
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "underline"
             select: "first_response"
-          - name: "draw-underline"
-            word: "regular income"
+            match: "capital preservation"
+          - name: "underline"
             select: "first_response"
-          - name: "draw-underline"
-            word: "growth"
+            match: "regular income"
+          - name: "underline"
             select: "first_response"
+            match: "growth"
+          - name: "mark"
+            select: "first_response"
+            match: "capital preservation"
+            background-color: "#e2e2e2"
 
       - id: "fork_branch"
         start: 1

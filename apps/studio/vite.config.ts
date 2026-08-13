@@ -8,6 +8,7 @@ const scenePath = fileURLToPath(new URL('../../.data/scene.contract.yaml', impor
 
 // https://vite.dev/config/
 export default defineConfig({
+  optimizeDeps: { exclude: ['@monaco-editor-api'] },
   resolve: {
     alias: {
       '@monaco-editor-api': fileURLToPath(

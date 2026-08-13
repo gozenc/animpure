@@ -220,9 +220,10 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
           const textbox = textboxes.get(operation.objectId)!
           const lines: Element[] = []
           runner.during((position: number) => {
-            const rects = measureTextMatch(textbox.node, operation.match, textbox.size)
             for (const line of lines) line.attr('visibility', 'hidden')
             const progress = ease(position)
+            if (progress <= 0) return
+            const rects = measureTextMatch(textbox.node, operation.match, textbox.size)
             rects.forEach((rect, index) => {
               const thickness = Math.max(1, rect.height / 12)
               const line = lines[index] ?? textbox.element.line(0, 0, 0, 0)

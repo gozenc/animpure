@@ -1,11 +1,18 @@
 import { loader, type Monaco } from '@monaco-editor/react'
+import type { editor, languages } from 'monaco-editor'
 // @ts-expect-error Monaco only publishes declarations for its package root.
 import * as monaco from '@monaco-editor-api'
 import editorWorker from '../../../node_modules/monaco-editor/esm/vs/editor/editor.worker.js?worker'
 import { configureMonacoYaml } from 'monaco-yaml'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import '../../../node_modules/monaco-editor/esm/vs/editor/browser/coreCommands.js'
+import '../../../node_modules/monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js'
+import '../../../node_modules/monaco-editor/esm/vs/editor/contrib/colorPicker/browser/colorPickerContribution.js'
 import '../../../node_modules/monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor.js'
+// @ts-expect-error Monaco does not publish declarations for its color utilities.
+import { Color, RGBA } from '../../../node_modules/monaco-editor/esm/vs/base/common/color.js'
+// @ts-expect-error Monaco does not publish declarations for its default color parser.
+import { computeDefaultDocumentColors } from '../../../node_modules/monaco-editor/esm/vs/editor/common/languages/defaultDocumentColorsComputer.js'
 // @ts-expect-error Monaco does not publish declarations for language definitions.
 import { language as yamlLanguage } from '../../../node_modules/monaco-editor/esm/vs/languages/definitions/yaml/yaml.js'
 
@@ -22,6 +29,15 @@ type MonacoWindow = typeof globalThis & {
 loader.config({ monaco })
 
 let yamlConfigured = false
+
+const documentColors = (model: editor.ITextModel) => {
+  const source = model.getValue()
+  return computeDefaultDocumentColors({
+    getValue: () => source,
+    positionAt: (offset: number) => model.getPositionAt(offset),
+    findMatches: (pattern: RegExp) => Array.from(source.matchAll(pattern)),
+  })
+}
 
 export function configureYamlEditor(instance: Monaco) {
   if (yamlConfigured) return
@@ -57,5 +73,24 @@ export function configureYamlEditor(instance: Monaco) {
     validate: false,
   })
   instance.languages.setMonarchTokensProvider('yaml', yamlLanguage)
+  instance.languages.registerColorProvider('yaml', {
+    provideDocumentColors: documentColors,
+    provideColorPresentations: (
+      _model: editor.ITextModel,
+      { color, range }: languages.IColorInformation,
+    ) => {
+      const value = new Color(new RGBA(
+        Math.round(color.red * 255),
+        Math.round(color.green * 255),
+        Math.round(color.blue * 255),
+        color.alpha,
+      ))
+      return [
+        Color.Format.CSS.formatRGB(value),
+        Color.Format.CSS.formatHSL(value),
+        Color.Format.CSS.formatHexA(value, true),
+      ].map((text) => ({ label: text, textEdit: { range, text } }))
+    },
+  })
   yamlConfigured = true
 }
