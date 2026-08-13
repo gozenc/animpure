@@ -40,6 +40,7 @@ export type TextboxObject = {
   size: Point
   content: string
   style: ShapeStyle & {
+    background?: string
     wrap: boolean
     'font-size': number
     'font-family': string
@@ -267,7 +268,7 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
       key !== 'fill' && key !== 'stroke' && key !== 'stroke-width' && key !== 'rounded'
       && !((shape === 'straight' || shape === 'curve') && key === 'stroke-linecap')
       && !(shape === 'textbox' && (
-        key === 'wrap' || key === 'font-size' || key === 'font-family'
+        key === 'background' || key === 'wrap' || key === 'font-size' || key === 'font-family'
         || key === 'line-height' || key === 'font-weight'
       ))
     ) {
@@ -288,6 +289,9 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
       ? {}
       : { 'stroke-linecap': linecap as 'round' | 'butt' }),
     ...(source.rounded === undefined ? {} : { rounded: number(source.rounded, `${label}.rounded`) }),
+    ...(source.background === undefined
+      ? {}
+      : { background: string(source.background, `${label}.background`) }),
     ...(source.wrap === undefined ? {} : { wrap: boolean(source.wrap, `${label}.wrap`) }),
     ...(source['font-size'] === undefined
       ? {}

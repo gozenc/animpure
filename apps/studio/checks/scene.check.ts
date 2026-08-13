@@ -49,11 +49,18 @@ const textbox = compileScene({
       'font-family': 'SFUI',
       'line-height': 1.2,
       'font-weight': 600,
+      background: '#FFFFFF',
+      stroke: '#008080',
+      'stroke-width': 2,
     },
   }],
 }).objects[0]
+assert.equal(textbox.shape, 'textbox')
+if (textbox.shape !== 'textbox') throw new Error('Expected textbox')
 assert.equal(textbox.style['line-height'], 1.2)
 assert.equal(textbox.style['font-weight'], 600)
+assert.equal(textbox.style.background, '#FFFFFF')
+assert.equal(textbox.style.stroke, '#008080')
 const underline = compileScene({
   ...scene,
   objects: [{

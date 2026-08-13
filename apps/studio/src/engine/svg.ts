@@ -75,7 +75,21 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
   )) {
     if (object.shape === 'textbox') {
       const element = draw.group()
-      const foreignObject = element.foreignObject(object.size.x, object.size.y)
+      if (object.style.background !== undefined) {
+        element.rect(object.size.x, object.size.y)
+          .fill(object.style.background)
+          .attr('data-textbox-background', object.id)
+      }
+      if (object.style.stroke !== undefined) {
+        const width = object.style['stroke-width'] ?? 1
+        element.rect(object.size.x + width, object.size.y + width)
+          .move(-width / 2, -width / 2)
+          .fill('none')
+          .stroke({ color: object.style.stroke, width })
+          .attr('data-textbox-outline', object.id)
+      }
+      const content = element.group().clipWith(draw.rect(object.size.x, object.size.y))
+      const foreignObject = content.foreignObject(object.size.x, object.size.y)
       const node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div')
       node.textContent = object.content
       node.style.cssText = [
@@ -91,13 +105,12 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
       ].join(';')
       foreignObject.node.append(node)
       element
-        .clipWith(draw.rect(object.size.x, object.size.y))
         .timeline(timeline)
         .transform({ translate: [object.position.x, object.position.y] })
         .attr('data-object-id', object.id)
       elements.set(object.id, element)
       textboxes.set(object.id, {
-        element,
+        element: content,
         node,
         graphemes: segmentText(object.content),
         size: object.size,
