@@ -27,6 +27,8 @@ type ShapeObject = {
 export type PathObject = {
   id: string
   d: string
+  origin: Point
+  forks: { id: string; d: string; origin: Point }[]
   style: ShapeStyle
   group?: string
 } & ({ shape: 'straight' } | { shape: 'curve' })
@@ -73,6 +75,17 @@ export type CompiledOperation =
   | {
       name: 'draw'
       objectId: string
+    }
+  | {
+      name: 'underline'
+      objectId: string
+      match: string
+    }
+  | {
+      name: 'mark'
+      objectId: string
+      match: string
+      backgroundColor: string
     }
 
 export type CompiledMoment = {
@@ -168,23 +181,28 @@ const compileStraight = (value: unknown, label: string) => {
     (entry, index) => staticCoordinate(entry.trim(), `${label}[${index}]`),
   )
   if (points.length < 2) throw new RangeError(`${label} requires at least two coordinates`)
-  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pathPoint(point)}`).join(' ')
+  return {
+    d: points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pathPoint(point)}`).join(' '),
+    origin: points[0],
+  }
 }
 
 const compileCurve = (value: unknown, label: string) => {
   const segments = array(value, label)
   if (segments.length < 2) throw new RangeError(`${label} requires a start and at least one segment`)
 
-  return segments.map((entry, index) => {
+  const first = object(segments[0], `${label}[0]`)
+  if (Object.keys(first).length !== 1 || !('start' in first)) {
+    throw new SyntaxError(`${label} must start with start`)
+  }
+  const origin = staticCoordinate(first.start, `${label}[0].start`)
+  const commands = segments.slice(1).map((entry, offset) => {
+    const index = offset + 1
     const segment = object(entry, `${label}[${index}]`)
     const keys = Object.keys(segment)
     if (keys.length !== 1) throw new SyntaxError(`${label}[${index}] must contain one command`)
 
     const command = keys[0]
-    if (index === 0) {
-      if (command !== 'start') throw new SyntaxError(`${label} must start with start`)
-      return `M ${pathPoint(staticCoordinate(segment.start, `${label}[0].start`))}`
-    }
     if (command === 'line') {
       return `L ${pathPoint(staticCoordinate(segment.line, `${label}[${index}].line`))}`
     }
@@ -204,7 +222,24 @@ const compileCurve = (value: unknown, label: string) => {
       ].map(pathPoint).join(' ')}`
     }
     throw new RangeError(`Unsupported curve command: ${command}`)
-  }).join(' ')
+  })
+  return { d: [`M ${pathPoint(origin)}`, ...commands].join(' '), origin }
+}
+
+const compileForks = (value: unknown, label: string) => {
+  if (value === undefined) return []
+
+  const ids = new Set<string>()
+  return array(value, label).map((entry, index) => {
+    const fork = object(entry, `${label}[${index}]`)
+    const id = string(fork.id, `${label}[${index}].id`)
+    if (ids.has(id)) throw new RangeError(`Duplicate fork id: ${id}`)
+    ids.add(id)
+    for (const key of Object.keys(fork)) {
+      if (key !== 'id' && key !== 'coords') throw new RangeError(`Unsupported fork field: ${key}`)
+    }
+    return { id, ...compileStraight(fork.coords, `${label}[${index}].coords`) }
+  })
 }
 
 const transition = (value: unknown, label: string) => {
@@ -307,12 +342,22 @@ export function compileScene(value: unknown): CompiledScene {
     }
 
     if (shape === 'straight' || shape === 'curve') {
+      if (shape === 'curve' && source.forks !== undefined) {
+        throw new RangeError(`${id}.forks is only supported by straight`)
+      }
+      const geometry = shape === 'straight'
+        ? compileStraight(source.coords, `${id}.coords`)
+        : compileCurve(source.path, `${id}.path`)
+      const forks = shape === 'straight' ? compileForks(source.forks, `${id}.forks`) : []
+      for (const selector of [`${id}.main`, ...forks.map((fork) => `${id}.${fork.id}`)]) {
+        if (objectIds.has(selector)) throw new RangeError(`Duplicate object id: ${selector}`)
+        objectIds.add(selector)
+      }
       return {
         id,
         shape,
-        d: shape === 'straight'
-          ? compileStraight(source.coords, `${id}.coords`)
-          : compileCurve(source.path, `${id}.path`),
+        ...geometry,
+        forks,
         style: base.style,
         ...(base.group === undefined ? {} : { group: base.group }),
       } satisfies PathObject
@@ -331,6 +376,15 @@ export function compileScene(value: unknown): CompiledScene {
     } satisfies TextboxObject
   })
 
+  const shapesById = new Map(objects.flatMap((object) => [
+    [object.id, object.shape] as const,
+    ...(object.shape === 'straight' || object.shape === 'curve'
+      ? [
+          [`${object.id}.main`, object.shape] as const,
+          ...object.forks.map((fork) => [`${object.id}.${fork.id}`, object.shape] as const),
+        ]
+      : []),
+  ]))
   const objectsById = new Map(objects.map((object) => [object.id, object]))
 
   const momentIds = new Set<string>()
@@ -378,7 +432,7 @@ export function compileScene(value: unknown): CompiledScene {
             }
           }
           if (name === 'typewriter' || name === 'font-resize') {
-            if (objectsById.get(objectId)!.shape !== 'textbox') {
+            if (shapesById.get(objectId)! !== 'textbox') {
               throw new RangeError(`${name} requires a textbox: ${objectId}`)
             }
             return name === 'typewriter'
@@ -390,11 +444,32 @@ export function compileScene(value: unknown): CompiledScene {
                 }
           }
           if (name === 'draw') {
-            const shape = objectsById.get(objectId)!.shape
+            const shape = shapesById.get(objectId)!
             if (shape !== 'straight' && shape !== 'curve') {
               throw new RangeError(`draw requires a straight or curve: ${objectId}`)
             }
             return { name, objectId }
+          }
+          if (name === 'underline' || name === 'mark') {
+            const selected = objectsById.get(objectId)!
+            if (selected.shape !== 'textbox') {
+              throw new RangeError(`${name} requires a textbox: ${objectId}`)
+            }
+            const match = string(operation.match, `${momentId}.match`)
+            if (!selected.content.includes(match)) {
+              throw new RangeError(`Text not found in ${objectId}: ${match}`)
+            }
+            return name === 'underline'
+              ? { name, objectId, match }
+              : {
+                  name,
+                  objectId,
+                  match,
+                  backgroundColor: string(
+                    operation['background-color'],
+                    `${momentId}.background-color`,
+                  ),
+                }
           }
           throw new RangeError(`Unsupported operation: ${name}`)
         },
@@ -414,22 +489,39 @@ export function compileScene(value: unknown): CompiledScene {
     return { id, moments }
   })
 
+  const drawTargets = new Map(objects.flatMap((object) =>
+    object.shape === 'straight' || object.shape === 'curve'
+      ? [[object.id, [
+          `${object.id}.main`,
+          ...object.forks.map((fork) => `${object.id}.${fork.id}`),
+        ]] as const]
+      : [],
+  ))
   const writes = timelines.flatMap(({ moments }) => moments.flatMap((moment) =>
-    moment.operations.map((operation) => ({
-      objectId: operation.objectId,
-      property: operation.name === 'move'
-        ? 'location'
-        : operation.name === 'draw'
-          ? 'stroke-dashoffset'
-          : operation.name === 'typewriter'
-          ? 'content'
-          : operation.name === 'font-resize'
-            ? 'font-size'
-            : 'size',
-      start: moment.start,
-      end: moment.loop ? maxTime : moment.end,
-      momentId: moment.id,
-    })),
+    moment.operations.flatMap((operation) =>
+      (operation.name === 'draw'
+        ? drawTargets.get(operation.objectId) ?? [operation.objectId]
+        : [operation.objectId]
+      ).map((objectId) => ({
+        objectId,
+        property: operation.name === 'move'
+          ? 'location'
+          : operation.name === 'draw'
+            ? 'stroke-dashoffset'
+            : operation.name === 'typewriter'
+              ? 'content'
+            : operation.name === 'font-resize'
+                ? 'font-size'
+                : operation.name === 'underline'
+                  ? `underline:${operation.match}`
+                  : operation.name === 'mark'
+                    ? `mark:${operation.match}`
+                  : 'size',
+        start: moment.start,
+        end: moment.loop ? maxTime : moment.end,
+        momentId: moment.id,
+      })),
+    ),
   ))
 
   for (let index = 0; index < writes.length; index += 1) {

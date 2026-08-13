@@ -47,12 +47,62 @@ const textbox = compileScene({
 }).objects[0]
 assert.equal(textbox.style['line-height'], 1.2)
 assert.equal(textbox.style['font-weight'], 600)
+const underline = compileScene({
+  ...scene,
+  objects: [{
+    id: 'text',
+    shape: 'textbox',
+    size: '200 100',
+    content: 'capital preservation',
+    style: { wrap: true, 'font-size': 12, 'font-family': 'SFUI' },
+  }],
+  timelines: [{
+    id: 'main',
+    moments: [{
+      id: 'underline-text',
+      start: 0,
+      end: 1,
+      operations: [{ name: 'underline', select: 'text', match: 'capital preservation' }],
+    }],
+  }],
+}).timelines[0].moments[0].operations[0]
+assert.equal(underline.name, 'underline')
+if (underline.name !== 'underline') throw new Error('Expected underline')
+assert.equal(underline.match, 'capital preservation')
+const mark = compileScene({
+  ...scene,
+  objects: [{
+    id: 'text',
+    shape: 'textbox',
+    size: '200 100',
+    content: 'capital preservation',
+    style: { wrap: true, 'font-size': 12, 'font-family': 'SFUI' },
+  }],
+  timelines: [{
+    id: 'main',
+    moments: [{
+      id: 'mark-text',
+      start: 0,
+      end: 1,
+      operations: [{
+        name: 'mark',
+        select: 'text',
+        match: 'capital preservation',
+        'background-color': '#FFC517',
+      }],
+    }],
+  }],
+}).timelines[0].moments[0].operations[0]
+assert.equal(mark.name, 'mark')
+if (mark.name !== 'mark') throw new Error('Expected mark')
+assert.equal(mark.backgroundColor, '#FFC517')
 const straightScene = compileScene({
   ...scene,
   objects: [{
     id: 'wire',
     shape: 'straight',
     coords: '300 295 | 300 400 | 400 400',
+    forks: [{ id: 'fork_1', coords: '400 400 | 450 400' }],
     style: { stroke: '#008080', 'stroke-width': 5, 'stroke-linecap': 'round' },
   }],
   timelines: [{
@@ -61,15 +111,18 @@ const straightScene = compileScene({
       id: 'draw-wire',
       start: 0,
       end: 1,
-      operations: [{ name: 'draw', select: 'wire' }],
+      operations: [{ name: 'draw', select: 'wire.fork_1' }],
     }],
   }],
 })
 assert.equal(straightScene.objects[0].shape, 'straight')
 if (straightScene.objects[0].shape !== 'straight') throw new Error('Expected straight')
 assert.equal(straightScene.objects[0].d, 'M 300 295 L 300 400 L 400 400')
+assert.deepEqual(straightScene.objects[0].origin, { x: 300, y: 295 })
+assert.equal(straightScene.objects[0].forks[0].d, 'M 400 400 L 450 400')
 assert.equal(straightScene.objects[0].style['stroke-linecap'], 'round')
 assert.equal(straightScene.timelines[0].moments[0].operations[0].name, 'draw')
+assert.equal(straightScene.timelines[0].moments[0].operations[0].objectId, 'wire.fork_1')
 const curve = compileScene({
   ...scene,
   timelines: [],
