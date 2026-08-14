@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { compileScene, parseCoordinate } from '../src/engine/scene.ts'
 import { segmentText } from '../src/engine/svg.ts'
 import { compileYaml } from '../src/engine/yaml.ts'
+import { registerStudioTools } from '../src/webmcp.ts'
 
 assert.deepEqual(parseCoordinate('5'), { start: { x: 5, y: 5 } })
 assert.deepEqual(parseCoordinate('0 5'), { start: { x: 0, y: 5 } })
@@ -76,13 +77,23 @@ const underline = compileScene({
       id: 'underline-text',
       start: 0,
       end: 1,
-      operations: [{ name: 'underline', select: 'text', match: 'capital preservation' }],
+      operations: [{
+        name: 'underline',
+        select: 'text',
+        match: 'capital preservation',
+        style: { color: '#008080', 'stroke-width': 3, 'stroke-linecap': 'butt' },
+      }],
     }],
   }],
 }).timelines[0].moments[0].operations[0]
 assert.equal(underline.name, 'underline')
 if (underline.name !== 'underline') throw new Error('Expected underline')
 assert.equal(underline.match, 'capital preservation')
+assert.deepEqual(underline.style, {
+  color: '#008080',
+  'stroke-width': 3,
+  'stroke-linecap': 'butt',
+})
 const mark = compileScene({
   ...scene,
   objects: [{
@@ -200,3 +211,27 @@ const contract = readFileSync(new URL('../../../.data/scene.contract.yaml', impo
 const compiledContract = compileYaml(contract)
 assert.ok(compiledContract.objects.length > 0)
 assert.deepEqual(segmentText('A👨‍👩‍👧‍👦B'), ['A', '👨‍👩‍👧‍👦', 'B'])
+
+const registered: { name: string; execute: (input: Record<string, unknown>) => Promise<unknown> }[] = []
+Object.assign(globalThis, {
+  document: {
+    modelContext: {
+      registerTool: async (tool: { name: string; execute: (input: Record<string, unknown>) => Promise<unknown> }) => {
+        registered.push(tool)
+      },
+    },
+  },
+})
+const unregister = registerStudioTools({
+  getYaml: () => 'before',
+  setYaml: (yaml) => yaml === 'broken' ? 'invalid YAML' : undefined,
+  exportJpeg: async () => ({ fileName: 'scene.jpg', width: 600, height: 400 }),
+  control: ({ action }) => ({ action }),
+})
+await new Promise(queueMicrotask)
+assert.deepEqual(registered.map(({ name }) => name), ['edit_scene_yaml', 'scene_export', 'control_panel'])
+assert.deepEqual(await registered[0].execute({ yaml: 'broken' }), {
+  previousYaml: 'before', yaml: 'broken', error: 'invalid YAML',
+})
+assert.deepEqual(await registered[2].execute({ action: 'rewind' }), { action: 'rewind' })
+unregister?.()

@@ -101,15 +101,24 @@ timelines:
           - name: "underline"
             select: "first_response"
             match: "capital preservation"
-            background-color: "#e2e2e2"
+            style:
+              color: "#e2e2e2"
+              stroke-width: 2
+              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "regular income"
-            background-color: "#e2e2e2"
+            style:
+              color: "#e2e2e2"
+              stroke-width: 2
+              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "growth"
-            background-color: "#e2e2e2"
+            style:
+              color: "#e2e2e2"
+              stroke-width: 2
+              stroke-linecap: "round"
           - name: "mark"
             select: "first_response"
             match: "regular income"

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Editor from '@monaco-editor/react'
+import type { editor } from 'monaco-editor'
 import { Pause, Repeat2, SkipBack } from 'lucide-react'
 import contract from '../../../.data/scene.contract.yaml?raw'
 import { mountScene } from './engine/svg.ts'
 import { compileYaml } from './engine/yaml.ts'
 import { bindEditorShortcuts, configureYamlEditor } from './monaco.ts'
+import { registerStudioTools } from './webmcp.ts'
 
 type Player = ReturnType<typeof mountScene>
 
@@ -19,9 +21,15 @@ function App() {
   const [resizing, setResizing] = useState(false)
   const workspace = useRef<HTMLDivElement>(null)
   const preview = useRef<HTMLDivElement>(null)
+  const editor = useRef<editor.IStandaloneCodeEditor>(null)
   const player = useRef<Player>(null)
+  const sourceRef = useRef(source)
+  const sceneRef = useRef(scene)
+  const editRef = useRef<(nextSource: string) => string | undefined>(() => undefined)
+  const controlRef = useRef<(input: { action?: unknown; time?: unknown; enabled?: unknown }) => unknown>(() => undefined)
   const frame = useRef(0)
   const currentTime = useRef(0)
+  const isPlaying = useRef(false)
   const playStarted = useRef(0)
   const playOffset = useRef(0)
   const repeat = useRef(false)
@@ -49,6 +57,7 @@ function App() {
   const pause = () => {
     player.current?.pause()
     cancelAnimationFrame(frame.current)
+    isPlaying.current = false
     setPlaying(false)
   }
 
@@ -74,23 +83,56 @@ function App() {
   }
 
   const togglePlayback = () => {
-    if (playing) return pause()
+    if (isPlaying.current) return pause()
     if (time === scene.maxTime) seek(0)
     playOffset.current = time === scene.maxTime ? 0 : time
     playStarted.current = performance.now()
+    isPlaying.current = true
     setPlaying(true)
     frame.current = requestAnimationFrame(tick)
   }
 
+  const setRepeat = (enabled: boolean) => {
+    repeat.current = enabled
+    setRepeating(enabled)
+  }
+
   const edit = (nextSource: string) => {
     pause()
+    sourceRef.current = nextSource
     setSource(nextSource)
     try {
       const nextScene = compileYaml(nextSource)
+      sceneRef.current = nextScene
       setScene(nextScene)
       setError(undefined)
+      return undefined
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      const message = cause instanceof Error ? cause.message : String(cause)
+      setError(message)
+      return message
+    }
+  }
+
+  editRef.current = edit
+  controlRef.current = ({ action, time: nextTime, enabled }) => {
+    if (action === 'start') {
+      if (!playing) togglePlayback()
+    } else if (action === 'stop') pause()
+    else if (action === 'rewind') {
+      pause()
+      seek(0)
+    } else if (action === 'repeat') setRepeat(Boolean(enabled))
+    else if (action === 'seek') {
+      pause()
+      seek(Number(nextTime))
+    }
+    return {
+      playing: isPlaying.current,
+      repeating: action === 'repeat' ? Boolean(enabled) : repeat.current,
+      time: action === 'rewind' ? 0 : action === 'seek' ? Math.min(Number(nextTime), sceneRef.current.maxTime) : currentTime.current,
+      maxTime: sceneRef.current.maxTime,
+      range: { min: 0, max: sceneRef.current.maxTime },
     }
   }
 
@@ -101,6 +143,39 @@ function App() {
   }, [scene])
 
   useEffect(() => () => cancelAnimationFrame(frame.current), [])
+
+  useEffect(() => registerStudioTools({
+    getYaml: () => editor.current?.getValue() ?? sourceRef.current,
+    setYaml: (yaml) => editRef.current(yaml),
+    exportJpeg: async () => {
+      const svg = player.current!.draw.node as SVGSVGElement
+      svg.setAttribute('width', String(sceneRef.current.size.x))
+      svg.setAttribute('height', String(sceneRef.current.size.y))
+      const imageUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], {
+        type: 'image/svg+xml',
+      }))
+      const image = new Image()
+      image.src = imageUrl
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = sceneRef.current.size.x
+      canvas.height = sceneRef.current.size.y
+      const context = canvas.getContext('2d')!
+      context.fillStyle = sceneRef.current.style.background ?? '#ffffff'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(imageUrl)
+      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((value) => resolve(value!), 'image/jpeg', 0.92))
+      const fileName = `${sceneRef.current.name}.jpg`
+      const download = document.createElement('a')
+      download.href = URL.createObjectURL(blob)
+      download.download = fileName
+      download.click()
+      URL.revokeObjectURL(download.href)
+      return { fileName, width: canvas.width, height: canvas.height }
+    },
+    control: (input) => controlRef.current(input),
+  }), [])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -144,7 +219,10 @@ function App() {
               language="yaml"
               theme="animpure-yaml"
               beforeMount={configureYamlEditor}
-              onMount={bindEditorShortcuts}
+              onMount={(instance) => {
+                editor.current = instance
+                bindEditorShortcuts(instance)
+              }}
               onChange={(value) => edit(value ?? '')}
               options={{
                 automaticLayout: true,
@@ -219,8 +297,7 @@ function App() {
           aria-label="Repeat timeline"
           aria-pressed={repeating}
           onClick={() => {
-            repeat.current = !repeat.current
-            setRepeating(repeat.current)
+            setRepeat(!repeat.current)
           }}
         >
           <Repeat2 />

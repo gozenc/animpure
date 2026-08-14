@@ -81,6 +81,11 @@ export type CompiledOperation =
       name: 'underline'
       objectId: string
       match: string
+      style: {
+        color?: string
+        'stroke-width'?: number
+        'stroke-linecap'?: 'round' | 'butt'
+      }
     }
   | {
       name: 'mark'
@@ -469,7 +474,29 @@ export function compileScene(value: unknown): CompiledScene {
             if (!selected.content.includes(match)) {
               throw new RangeError(`Text not found in ${objectId}: ${match}`)
             }
-            if (name === 'underline') return { name, objectId, match }
+            if (name === 'underline') {
+              const style = object(operation.style, `${momentId}.style`)
+              const linecap = style['stroke-linecap']
+              if (linecap !== undefined && linecap !== 'round' && linecap !== 'butt') {
+                throw new RangeError(`${momentId}.style.stroke-linecap must be round or butt`)
+              }
+              return {
+                name,
+                objectId,
+                match,
+                style: {
+                  ...(style.color === undefined
+                    ? {}
+                    : { color: string(style.color, `${momentId}.style.color`) }),
+                  ...(style['stroke-width'] === undefined
+                    ? {}
+                    : { 'stroke-width': number(style['stroke-width'], `${momentId}.style.stroke-width`) }),
+                  ...(linecap === undefined
+                    ? {}
+                    : { 'stroke-linecap': linecap as 'round' | 'butt' }),
+                },
+              }
+            }
 
             const style = object(operation.style, `${momentId}.style`)
             const transition = style.transition === undefined

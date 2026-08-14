@@ -91,7 +91,7 @@ timelines:
             select: "first_response"
             size: "24 -> 36"
 
-      - id: "underline_response"
+      - id: "underline_mark_responses"
         start: 2
         end: 2.6
         ease: "inOutCubic"
@@ -100,15 +100,24 @@ timelines:
           - name: "underline"
             select: "first_response"
             match: "capital preservation"
-            background-color: "#e2e2e2"
+            style:
+              color: "#008080"
+              stroke-width: 3
+              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "regular income"
-            background-color: "#e2e2e2"
+            style:
+              color: "#008080"
+              stroke-width: 3
+              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "growth"
-            background-color: "#e2e2e2"
+            style:
+              color: "#008080"
+              stroke-width: 3
+              stroke-linecap: "round"
           - name: "mark"
             select: "first_response"
             match: "regular income"
@@ -142,8 +151,8 @@ timelines:
             select: "fork_wire"
 
       - id: "moving_up"
-        start: 2
-        end: 5
+        start: 3
+        end: 6
         ease: "inOutCubic"
         z_index: 2
         operations:

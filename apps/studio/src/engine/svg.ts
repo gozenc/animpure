@@ -268,12 +268,12 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
             if (progress <= 0) return
             const rects = measureTextMatch(textbox.node, operation.match, textbox.size)
             rects.forEach((rect, index) => {
-              const thickness = Math.max(1, rect.height / 12)
+              const thickness = operation.style['stroke-width'] ?? Math.max(1, rect.height / 12)
               const line = lines[index] ?? textbox.element.line(0, 0, 0, 0)
                 .attr({
                   'data-underline': operation.match,
-                  stroke: getComputedStyle(textbox.node).color,
-                  'stroke-linecap': 'round',
+                  stroke: operation.style.color ?? getComputedStyle(textbox.node).color,
+                  'stroke-linecap': operation.style['stroke-linecap'] ?? 'round',
                 })
               lines[index] = line
               line.attr({
