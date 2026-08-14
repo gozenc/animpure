@@ -34,6 +34,15 @@ objects:
       font-family: "SFUI"
       line-height: 1.1
 
+  - id: "first_branch_frame"
+    shape: "rect"
+    size: "150 200"
+    position: "85 185"
+    style:
+      stroke: "#008080"
+      fill: "none"
+      stroke-width: 2.5
+
   - id: "first_branch_prompt_skeleton"
     shape: "skeleton"
     animation:
