@@ -75,7 +75,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
   for (const object of scene.objects) {
     if (object.shape !== 'straight' && object.shape !== 'curve') continue
     owners.set(`${object.id}.main`, object.id)
-    for (const fork of object.forks) owners.set(`${object.id}.${fork.id}`, object.id)
+    for (const fork of object.forks) owners.set(fork.id, object.id)
   }
 
   // ponytail: layers are static; evaluate z-index per frame if animated layering becomes necessary.
@@ -151,7 +151,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         .attr('data-object-id', object.id)
       const parts = [
         { id: `${object.id}.main`, d: object.d, origin: object.origin },
-        ...object.forks.map(({ id, ...fork }) => ({ id: `${object.id}.${id}`, ...fork })),
+        ...object.forks,
       ]
       const groupPaths = parts.map((part) => {
         const path = group.path(part.d)
@@ -165,7 +165,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         return animatedPath
       })
       elements.set(object.id, group)
-      paths.set(object.id, groupPaths)
+      paths.set(object.id, [groupPaths[0]])
       pathOrigins.set(object.id, object.origin)
       continue
     }

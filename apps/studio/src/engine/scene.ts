@@ -364,7 +364,7 @@ export function compileScene(value: unknown): CompiledScene {
         ? compileStraight(source.coords, `${id}.coords`)
         : compileCurve(source.path, `${id}.path`)
       const forks = shape === 'straight' ? compileForks(source.forks, `${id}.forks`) : []
-      for (const selector of [`${id}.main`, ...forks.map((fork) => `${id}.${fork.id}`)]) {
+      for (const selector of forks.map((fork) => fork.id)) {
         if (objectIds.has(selector)) throw new RangeError(`Duplicate object id: ${selector}`)
         objectIds.add(selector)
       }
@@ -395,8 +395,7 @@ export function compileScene(value: unknown): CompiledScene {
     [object.id, object.shape] as const,
     ...(object.shape === 'straight' || object.shape === 'curve'
       ? [
-          [`${object.id}.main`, object.shape] as const,
-          ...object.forks.map((fork) => [`${object.id}.${fork.id}`, object.shape] as const),
+          ...object.forks.map((fork) => [fork.id, object.shape] as const),
         ]
       : []),
   ]))
@@ -546,7 +545,6 @@ export function compileScene(value: unknown): CompiledScene {
     object.shape === 'straight' || object.shape === 'curve'
       ? [[object.id, [
           `${object.id}.main`,
-          ...object.forks.map((fork) => `${object.id}.${fork.id}`),
         ]] as const]
       : [],
   ))

@@ -2,7 +2,7 @@ name: "scene-1"
 
 scene:
   unit: "px"
-  max_time: 6
+  max_time: 7
   precision: 1
   size: "600 400"
   style:
@@ -44,14 +44,14 @@ objects:
 
   - id: "fork_wire"
     shape: "straight"
-    coords: "300 233 | 300 400"
+    coords: "300 233 | 300 350"
     forks:
       - id: "fork_1"
-        coords: "300 400 | 350 400"
+        coords: "300 350 | 450 350 | 450 370"
       - id: "fork_2"
-        coords: "300 400 | 300 450"
+        coords: "300 350 | 300 350 | 300 370"
       - id: "fork_3"
-        coords: "300 400 | 250 400"
+        coords: "300 350 | 150 350 | 150 370"
     style:
       fill: "none"
       stroke: "#008080"
@@ -146,6 +146,19 @@ timelines:
         operations:
           - name: "draw"
             select: "fork_wire"
+
+      - id: "fork_trio"
+        start: 3
+        end: 5
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "draw"
+            select: "fork_1"
+          - name: "draw"
+            select: "fork_2"
+          - name: "draw"
+            select: "fork_3"
 
       - id: "moving_up"
         start: 3

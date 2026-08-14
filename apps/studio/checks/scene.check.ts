@@ -142,7 +142,7 @@ const straightScene = compileScene({
       id: 'draw-wire',
       start: 0,
       end: 1,
-      operations: [{ name: 'draw', select: 'wire.fork_1' }],
+      operations: [{ name: 'draw', select: 'fork_1' }],
     }],
   }],
 })
@@ -153,7 +153,7 @@ assert.deepEqual(straightScene.objects[0].origin, { x: 300, y: 295 })
 assert.equal(straightScene.objects[0].forks[0].d, 'M 400 400 L 450 400')
 assert.equal(straightScene.objects[0].style['stroke-linecap'], 'round')
 assert.equal(straightScene.timelines[0].moments[0].operations[0].name, 'draw')
-assert.equal(straightScene.timelines[0].moments[0].operations[0].objectId, 'wire.fork_1')
+assert.equal(straightScene.timelines[0].moments[0].operations[0].objectId, 'fork_1')
 const curve = compileScene({
   ...scene,
   timelines: [],
