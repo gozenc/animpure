@@ -163,13 +163,18 @@ const skeleton = compileScene({
     position: '100 200',
     size: '100 50',
     animation: { name: 'shimmer', angle: 45, opacity: 0.5, duration: 2, loop: true },
-    rows: [{ id: 'short', width: 50 }, { id: 'full' }, { id: 'long', width: 80 }],
+    rows: [
+      { id: 'absolute', width: 50 },
+      { id: 'full' },
+      { id: 'relative', width: '40%' },
+      { id: 'mostly-full', width: '80%' },
+    ],
     style: { fill: 'red', gap: 8, align: 'right' },
   }],
 }).objects[0]
 assert.equal(skeleton.shape, 'skeleton')
 if (skeleton.shape !== 'skeleton') throw new Error('Expected skeleton')
-assert.deepEqual(skeleton.rows.map((row) => row.width), [50, 100, 80])
+assert.deepEqual(skeleton.rows.map((row) => row.width), [50, 100, 40, 80])
 assert.deepEqual(skeleton.style, { fill: 'red', gap: 8, align: 'right' })
 assert.deepEqual(skeleton.animation, {
   name: 'shimmer', angle: 45, opacity: 0.5, duration: 2, loop: true,

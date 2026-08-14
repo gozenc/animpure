@@ -70,35 +70,57 @@ objects:
     shape: "skeleton"
     group: "g:first_branch"
     position: "50 120"
+    size: "120 68"
     animation:
       name: "shimmer"
       angle: 45
       opacity: 0.5
       duration: 2
       loop: true
-    size: "120 50"
     rows:
       - id: "first_branch_response_skeleton_1"
-        width: 50
+        width: "70%"
       - id: "first_branch_response_skeleton_2"
       - id: "first_branch_response_skeleton_3"
-        width: 80
+        width: "60%"
       - id: "first_branch_response_skeleton_4"
-        width: 100
+        width: "85%"
+      - id: "first_branch_response_skeleton_5"
+        width: "75%"
     style:
       fill: "#008080"
       gap: 5
+
+  - id: "second_branch_frame"
+    shape: "rect"
+    size: "150 200"
+    position: "223 58"
+    group: "g:second_branch"
+    style:
+      stroke: "#008080"
+      fill: "none"
+      stroke-width: 2.5
+
+  - id: "third_branch_frame"
+    shape: "rect"
+    size: "150 200"
+    position: "410 58"
+    group: "g:third_branch"
+    style:
+      stroke: "#008080"
+      fill: "none"
+      stroke-width: 2.5
 
   - id: "fork_wire"
     shape: "straight"
     coords: "300 233 | 300 350"
     forks:
       - id: "fork_1"
-        coords: "300 350 | 450 350 | 450 370"
+        coords: "300 350 | 485 350 | 485 370"
       - id: "fork_2"
         coords: "300 350 | 300 350 | 300 370"
       - id: "fork_3"
-        coords: "300 350 | 150 350 | 150 370"
+        coords: "300 350 | 110 350 | 110 370"
     style:
       fill: "none"
       stroke: "#008080"
@@ -138,7 +160,7 @@ timelines:
             select: "first_response"
             size: "24 -> 36"
 
-      - id: "underline_response"
+      - id: "underlines_response"
         start: 2
         end: 2.6
         ease: "inOutCubic"
@@ -185,7 +207,7 @@ timelines:
               background-color: "#008080"
               transition: "color"
 
-      - id: "fork_branch"
+      - id: "fork_from_word"
         start: 2
         end: 5
         ease: "inOutCubic"
@@ -194,20 +216,7 @@ timelines:
           - name: "draw"
             select: "fork_wire"
 
-      - id: "fork_trio"
-        start: 4
-        end: 6
-        ease: "inOutCubic"
-        z_index: 2
-        operations:
-          - name: "draw"
-            select: "fork_1"
-          - name: "draw"
-            select: "fork_2"
-          - name: "draw"
-            select: "fork_3"
-
-      - id: "moving_up"
+      - id: "moving_texts_up"
         start: 3
         end: 6
         ease: "inOutCubic"
@@ -223,7 +232,42 @@ timelines:
             select: "fork_wire"
             location: "300 290 -> 300 -80"
 
-      - id: "move_sun"
+      - id: "fork_fanout_to_three"
+        start: 4
+        end: 6
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "draw"
+            select: "fork_1"
+          - name: "draw"
+            select: "fork_2"
+          - name: "draw"
+            select: "fork_3"
+
+      - id: "branches_appear"
+        start: 4
+        end: 6
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "move"
+            select: "g:first_branch"
+            location: "35 28 -> 35 58"
+          - name: "move"
+            select: "g:second_branch"
+            location: "223 38 -> 223 58"
+          - name: "move"
+            select: "g:third_branch"
+            location: "410 48 -> 410 58"
+          - name: "fadeIn"
+            select: "g:first_branch"
+          - name: "fadeIn"
+            select: "g:second_branch"
+          - name: "fadeIn"
+            select: "g:third_branch"
+
+      - id: "loop_the_circle"
         start: 0
         end: 3.5
         z_index: 0

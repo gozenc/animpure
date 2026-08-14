@@ -205,6 +205,14 @@ const staticCoordinate = (value: unknown, label: string) => {
   return coordinate.start
 }
 
+const resolveLength = (value: unknown, relativeTo: number, label: string) => {
+  if (typeof value === 'number') return number(value, label)
+  if (typeof value !== 'string' || !/^(?:\d+\.?\d*|\.\d+)%$/.test(value)) {
+    throw new TypeError(`${label} must be a number or percentage`)
+  }
+  return Number(value.slice(0, -1)) / 100 * relativeTo
+}
+
 const pathPoint = ({ x, y }: Point) => `${x} ${y}`
 
 const compileStraight = (value: unknown, label: string) => {
@@ -435,7 +443,7 @@ export function compileScene(value: unknown): CompiledScene {
           id: rowId,
           width: row.width === undefined
             ? base.size.x
-            : number(row.width, `${id}.rows[${rowIndex}].width`),
+            : resolveLength(row.width, base.size.x, `${id}.rows[${rowIndex}].width`),
         }
       })
       if (!rows.length) throw new RangeError(`${id}.rows requires at least one row`)
