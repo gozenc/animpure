@@ -50,7 +50,20 @@ export type TextboxObject = {
   group?: string
 }
 
-export type SceneObject = ShapeObject | PathObject | TextboxObject
+export type SkeletonObject = {
+  id: string
+  shape: 'skeleton'
+  position: Point
+  size: Point
+  rows: { id: string; width: number }[]
+  style: ShapeStyle & {
+    gap: number
+    align: 'left' | 'right'
+  }
+  group?: string
+}
+
+export type SceneObject = ShapeObject | PathObject | TextboxObject | SkeletonObject
 
 export type CompiledOperation =
   | {
@@ -280,6 +293,7 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
         key === 'background' || key === 'wrap' || key === 'font-size' || key === 'font-family'
         || key === 'line-height' || key === 'font-weight'
       ))
+      && !(shape === 'skeleton' && (key === 'gap' || key === 'align'))
     ) {
       throw new RangeError(`Unsupported style: ${key}`)
     }
@@ -287,6 +301,9 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
   const linecap = source['stroke-linecap']
   if (linecap !== undefined && linecap !== 'round' && linecap !== 'butt') {
     throw new RangeError(`${label}.stroke-linecap must be round or butt`)
+  }
+  if (source.align !== undefined && source.align !== 'left' && source.align !== 'right') {
+    throw new RangeError(`${label}.align must be left or right`)
   }
   return {
     ...(source.fill === undefined ? {} : { fill: string(source.fill, `${label}.fill`) }),
@@ -314,6 +331,10 @@ const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']
     ...(source['font-weight'] === undefined
       ? {}
       : { 'font-weight': number(source['font-weight'], `${label}.font-weight`) }),
+    ...(source.gap === undefined ? {} : { gap: number(source.gap, `${label}.gap`) }),
+    ...(source.align === undefined
+      ? {}
+      : { align: source.align as 'left' | 'right' }),
   }
 }
 
@@ -334,7 +355,7 @@ export function compileScene(value: unknown): CompiledScene {
     const shape = string(source.shape, `objects[${index}].shape`)
     if (
       shape !== 'rect' && shape !== 'ellipse' && shape !== 'straight'
-      && shape !== 'curve' && shape !== 'textbox'
+      && shape !== 'curve' && shape !== 'textbox' && shape !== 'skeleton'
     ) {
       throw new RangeError(`Unsupported shape: ${shape}`)
     }
@@ -377,6 +398,33 @@ export function compileScene(value: unknown): CompiledScene {
         ...(base.group === undefined ? {} : { group: base.group }),
       } satisfies PathObject
     }
+    if (shape === 'skeleton') {
+      if (source.size === undefined) throw new TypeError(`${id}.size is required`)
+      const style = base.style as SkeletonObject['style']
+      const rows = array(source.rows, `${id}.rows`).map((entry, rowIndex) => {
+        const row = object(entry, `${id}.rows[${rowIndex}]`)
+        const rowId = string(row.id, `${id}.rows[${rowIndex}].id`)
+        if (objectIds.has(rowId)) throw new RangeError(`Duplicate object id: ${rowId}`)
+        objectIds.add(rowId)
+        return {
+          id: rowId,
+          width: row.width === undefined
+            ? base.size.x
+            : number(row.width, `${id}.rows[${rowIndex}].width`),
+        }
+      })
+      if (!rows.length) throw new RangeError(`${id}.rows requires at least one row`)
+      const gap = style.gap ?? 0
+      if (base.size.y - gap * (rows.length - 1) <= 0) {
+        throw new RangeError(`${id}.style.gap leaves no height for rows`)
+      }
+      return {
+        ...base,
+        shape,
+        rows,
+        style: { ...style, gap, align: style.align ?? 'left' },
+      } satisfies SkeletonObject
+    }
     if (shape !== 'textbox') return base as ShapeObject
     if (source.size === undefined) throw new TypeError(`${id}.size is required`)
     const style = base.style as TextboxObject['style']
@@ -394,10 +442,10 @@ export function compileScene(value: unknown): CompiledScene {
   const shapesById = new Map(objects.flatMap((object) => [
     [object.id, object.shape] as const,
     ...(object.shape === 'straight' || object.shape === 'curve'
-      ? [
-          ...object.forks.map((fork) => [fork.id, object.shape] as const),
-        ]
-      : []),
+      ? object.forks.map((fork) => [fork.id, object.shape] as const)
+      : object.shape === 'skeleton'
+        ? object.rows.map((row) => [row.id, object.shape] as const)
+        : []),
   ]))
   const objectsById = new Map(objects.map((object) => [object.id, object]))
 

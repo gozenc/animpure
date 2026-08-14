@@ -154,6 +154,22 @@ assert.equal(straightScene.objects[0].forks[0].d, 'M 400 400 L 450 400')
 assert.equal(straightScene.objects[0].style['stroke-linecap'], 'round')
 assert.equal(straightScene.timelines[0].moments[0].operations[0].name, 'draw')
 assert.equal(straightScene.timelines[0].moments[0].operations[0].objectId, 'fork_1')
+const skeleton = compileScene({
+  ...scene,
+  timelines: [],
+  objects: [{
+    id: 'loading',
+    shape: 'skeleton',
+    position: '100 200',
+    size: '100 50',
+    rows: [{ id: 'short', width: 50 }, { id: 'full' }, { id: 'long', width: 80 }],
+    style: { fill: 'red', gap: 8, align: 'right' },
+  }],
+}).objects[0]
+assert.equal(skeleton.shape, 'skeleton')
+if (skeleton.shape !== 'skeleton') throw new Error('Expected skeleton')
+assert.deepEqual(skeleton.rows.map((row) => row.width), [50, 100, 80])
+assert.deepEqual(skeleton.style, { fill: 'red', gap: 8, align: 'right' })
 const curve = compileScene({
   ...scene,
   timelines: [],

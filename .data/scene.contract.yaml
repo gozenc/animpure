@@ -34,34 +34,34 @@ objects:
       font-family: "SFUI"
       line-height: 1.1
 
-  - id: "first_chat_prompt_skeleton"
+  - id: "first_branch_prompt_skeleton"
     shape: "skeleton"
-    position: "100 200"
+    position: "120 200"
     size: "100 50"
     rows:
-      - id: "first_chat_prompt_skeleton_1"
-        width: 50
-      - id: "first_chat_prompt_skeleton_2"
-      - id: "first_chat_prompt_skeleton_3"
+      - id: "first_branch_prompt_skeleton_1"
         width: 80
+      - id: "first_branch_prompt_skeleton_2"
+      - id: "first_branch_prompt_skeleton_3"
+        width: 35
     style:
-      fill: "red"
-      gap: 8
+      fill: "#b2dbdb"
+      gap: 5
       align: "right"
 
-  - id: "first_chat_response_skeleton"
+  - id: "first_branch_response_skeleton"
     shape: "skeleton"
     position: "100 260"
     size: "100 50"
     rows:
-      - id: "first_chat_response_skeleton_1"
+      - id: "first_branch_response_skeleton_1"
         width: 50
-      - id: "first_chat_response_skeleton_2"
-      - id: "first_chat_response_skeleton_3"
+      - id: "first_branch_response_skeleton_2"
+      - id: "first_branch_response_skeleton_3"
         width: 80
     style:
-      fill: "blue"
-      gap: 8
+      fill: "#008080"
+      gap: 5
 
   - id: "fork_wire"
     shape: "straight"

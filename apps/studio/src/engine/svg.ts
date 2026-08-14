@@ -73,9 +73,12 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
   const layers = new Map(scene.objects.map((object) => [object.id, 0]))
   const owners = new Map<string, string>()
   for (const object of scene.objects) {
-    if (object.shape !== 'straight' && object.shape !== 'curve') continue
-    owners.set(`${object.id}.main`, object.id)
-    for (const fork of object.forks) owners.set(fork.id, object.id)
+    if (object.shape === 'straight' || object.shape === 'curve') {
+      owners.set(`${object.id}.main`, object.id)
+      for (const fork of object.forks) owners.set(fork.id, object.id)
+    } else if (object.shape === 'skeleton') {
+      for (const row of object.rows) owners.set(row.id, object.id)
+    }
   }
 
   // ponytail: layers are static; evaluate z-index per frame if animated layering becomes necessary.
@@ -167,6 +170,26 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
       elements.set(object.id, group)
       paths.set(object.id, [groupPaths[0]])
       pathOrigins.set(object.id, object.origin)
+      continue
+    }
+
+    if (object.shape === 'skeleton') {
+      const group = draw.group()
+        .timeline(timeline)
+        .transform({ translate: [object.position.x, object.position.y] })
+        .attr('data-object-id', object.id)
+      const height = (object.size.y - object.style.gap * (object.rows.length - 1))
+        / object.rows.length
+      object.rows.forEach((row, index) => {
+        const rect = group.rect(row.width, height)
+          .move(object.style.align === 'right' ? object.size.x - row.width : 0, index * (height + object.style.gap))
+          .timeline(timeline)
+          .attr('data-object-id', row.id)
+        if (object.style.rounded !== undefined) rect.radius(object.style.rounded)
+        applyStyle(rect, object.style)
+        elements.set(row.id, rect)
+      })
+      elements.set(object.id, group)
       continue
     }
 
