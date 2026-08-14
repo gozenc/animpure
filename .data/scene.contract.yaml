@@ -112,15 +112,25 @@ timelines:
           - name: "mark"
             select: "first_response"
             match: "regular income"
-            background-color: "#e2e2e2"
+            style:
+              background-color: "#e2e2e2"
           - name: "mark"
             select: "first_response"
             match: "growth"
-            background-color: "#e2e2e2"
+            style:
+              background-color: "#e2e2e2"
           - name: "mark"
             select: "first_response"
             match: "capital preservation"
-            background-color: "#e2e2e2"
+            style:
+              background-color: "#e2e2e2"
+          - name: "mark"
+            select: "first_response"
+            match: "separately."
+            style:
+              color: "#fff"
+              background-color: "#008080"
+              transition: "color"
 
       - id: "fork_branch"
         start: 1
@@ -142,7 +152,7 @@ timelines:
             location: "150 50 -> 150 -250"
           - name: "move"
             select: "first_response"
-            location: "20 190 -> 20 -200"
+            location: "20 170 -> 20 -200"
           - name: "move"
             select: "fork_wire"
             location: "300 295 -> 300 0"

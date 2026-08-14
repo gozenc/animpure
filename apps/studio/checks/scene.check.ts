@@ -102,14 +102,20 @@ const mark = compileScene({
         name: 'mark',
         select: 'text',
         match: 'capital preservation',
-        'background-color': '#FFC517',
+        style: {
+          color: '#FFFFFF',
+          'background-color': '#FFC517',
+          transition: 'color',
+        },
       }],
     }],
   }],
 }).timelines[0].moments[0].operations[0]
 assert.equal(mark.name, 'mark')
 if (mark.name !== 'mark') throw new Error('Expected mark')
-assert.equal(mark.backgroundColor, '#FFC517')
+assert.equal(mark.style.backgroundColor, '#FFC517')
+assert.equal(mark.style.color, '#FFFFFF')
+assert.equal(mark.style.transition, 'color')
 const straightScene = compileScene({
   ...scene,
   objects: [{
@@ -190,7 +196,7 @@ assert.throws(() => compileScene({
   }],
 }), /Supported: none, inQuad/)
 
-const contract = readFileSync(new URL('../../../docs/scene.contract.yaml', import.meta.url), 'utf8')
+const contract = readFileSync(new URL('../../../.data/scene.contract.yaml', import.meta.url), 'utf8')
 const compiledContract = compileYaml(contract)
 assert.ok(compiledContract.objects.length > 0)
 assert.deepEqual(segmentText('A👨‍👩‍👧‍👦B'), ['A', '👨‍👩‍👧‍👦', 'B'])

@@ -14,13 +14,40 @@ const applyStyle = (element: Element, style: SceneObject['style']) => {
   if (style['stroke-linecap'] !== undefined) element.attr('stroke-linecap', style['stroke-linecap'])
 }
 
-const measureTextMatch = (node: HTMLElement, match: string, size: Point) => {
+const textMatchRange = (node: HTMLElement, match: string) => {
   const start = node.textContent!.indexOf(match)
-  if (start === -1) return []
+  if (start === -1) return
 
+  const end = start + match.length
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+  let offset = 0
+  let startNode: Text | undefined
+  let startOffset = 0
+  let endNode: Text | undefined
+  let endOffset = 0
+  for (let current = walker.nextNode() as Text | null; current; current = walker.nextNode() as Text | null) {
+    const next = offset + current.data.length
+    if (!startNode && start < next) {
+      startNode = current
+      startOffset = start - offset
+    }
+    if (end <= next) {
+      endNode = current
+      endOffset = end - offset
+      break
+    }
+    offset = next
+  }
   const range = document.createRange()
-  range.setStart(node.firstChild!, start)
-  range.setEnd(node.firstChild!, start + match.length)
+  range.setStart(startNode!, startOffset)
+  range.setEnd(endNode!, endOffset)
+  return range
+}
+
+const measureTextMatch = (node: HTMLElement, match: string, size: Point) => {
+  const range = textMatchRange(node, match)
+  if (!range) return []
+
   const bounds = node.getBoundingClientRect()
   const scaleX = size.x / bounds.width
   const scaleY = size.y / bounds.height
@@ -262,15 +289,37 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         } else if (operation.name === 'mark') {
           const textbox = textboxes.get(operation.objectId)!
           const marks: Element[] = []
+          let colored: HTMLElement | undefined
+          let sourceColor = ''
           runner.during((position: number) => {
+            const progress = ease(position)
+            if (operation.style.color !== undefined) {
+              if (progress <= 0 && colored?.isConnected) {
+                colored.replaceWith(document.createTextNode(colored.textContent!))
+                colored = undefined
+              } else if (progress > 0 && !colored?.isConnected) {
+                const range = textMatchRange(textbox.node, operation.match)
+                if (range) {
+                  colored = document.createElementNS('http://www.w3.org/1999/xhtml', 'span')
+                  colored.dataset.markColor = operation.match
+                  range.surroundContents(colored)
+                  sourceColor = getComputedStyle(colored).color
+                }
+              }
+              if (colored?.isConnected) {
+                const colorProgress = Math.min(1, Math.max(0, progress))
+                colored.style.color = operation.style.transition === 'color'
+                  ? `color-mix(in srgb, ${sourceColor} ${100 - colorProgress * 100}%, ${operation.style.color} ${colorProgress * 100}%)`
+                  : operation.style.color
+              }
+            }
             const rects = measureTextMatch(textbox.node, operation.match, textbox.size)
             for (const mark of marks) mark.attr('visibility', 'hidden')
-            const progress = ease(position)
             rects.forEach((rect, index) => {
               const mark = marks[index] ?? textbox.element.rect(0, 0)
                 .attr({
                   'data-mark': operation.match,
-                  fill: operation.backgroundColor,
+                  fill: operation.style.backgroundColor,
                 })
                 .back()
               marks[index] = mark

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Editor from '@monaco-editor/react'
 import { Pause, Repeat2, SkipBack } from 'lucide-react'
-import contract from '../../../docs/scene.contract.yaml?raw'
+import contract from '../../../.data/scene.contract.yaml?raw'
 import { mountScene } from './engine/svg.ts'
 import { compileYaml } from './engine/yaml.ts'
-import { configureYamlEditor } from './monaco.ts'
+import { bindEditorShortcuts, configureYamlEditor } from './monaco.ts'
 
 type Player = ReturnType<typeof mountScene>
 
@@ -144,6 +144,7 @@ function App() {
               language="yaml"
               theme="animpure-yaml"
               beforeMount={configureYamlEditor}
+              onMount={bindEditorShortcuts}
               onChange={(value) => edit(value ?? '')}
               options={{
                 automaticLayout: true,

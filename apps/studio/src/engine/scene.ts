@@ -86,7 +86,11 @@ export type CompiledOperation =
       name: 'mark'
       objectId: string
       match: string
-      backgroundColor: string
+      style: {
+        backgroundColor: string
+        color?: string
+        transition?: 'color'
+      }
     }
 
 export type CompiledMoment = {
@@ -465,17 +469,33 @@ export function compileScene(value: unknown): CompiledScene {
             if (!selected.content.includes(match)) {
               throw new RangeError(`Text not found in ${objectId}: ${match}`)
             }
-            return name === 'underline'
-              ? { name, objectId, match }
-              : {
-                  name,
-                  objectId,
-                  match,
-                  backgroundColor: string(
-                    operation['background-color'],
-                    `${momentId}.background-color`,
-                  ),
-                }
+            if (name === 'underline') return { name, objectId, match }
+
+            const style = object(operation.style, `${momentId}.style`)
+            const transition = style.transition === undefined
+              ? undefined
+              : string(style.transition, `${momentId}.style.transition`)
+            if (transition !== undefined && transition !== 'color') {
+              throw new RangeError(`${momentId}.style.transition must be color`)
+            }
+            if (transition === 'color' && style.color === undefined) {
+              throw new TypeError(`${momentId}.style.color is required for color transition`)
+            }
+            return {
+              name,
+              objectId,
+              match,
+              style: {
+                backgroundColor: string(
+                  style['background-color'],
+                  `${momentId}.style.background-color`,
+                ),
+                ...(style.color === undefined
+                  ? {}
+                  : { color: string(style.color, `${momentId}.style.color`) }),
+                ...(transition === undefined ? {} : { transition }),
+              },
+            }
           }
           throw new RangeError(`Unsupported operation: ${name}`)
         },

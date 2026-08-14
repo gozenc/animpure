@@ -39,6 +39,22 @@ const documentColors = (model: editor.ITextModel) => {
   })
 }
 
+export function bindEditorShortcuts(editor: editor.IStandaloneCodeEditor) {
+  const node = editor.getDomNode()!
+  const keydown = (event: KeyboardEvent) => {
+    if (
+      event.code !== 'KeyD' || !(event.metaKey || event.ctrlKey)
+      || event.altKey || event.shiftKey
+    ) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    editor.trigger('keyboard', 'editor.action.addSelectionToNextFindMatch', null)
+  }
+  node.addEventListener('keydown', keydown, true)
+  editor.onDidDispose(() => node.removeEventListener('keydown', keydown, true))
+}
+
 export function configureYamlEditor(instance: Monaco) {
   if (yamlConfigured) return
 
