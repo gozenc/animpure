@@ -148,8 +148,8 @@ timelines:
             select: "fork_wire"
 
       - id: "fork_trio"
-        start: 3
-        end: 5
+        start: 4
+        end: 6
         ease: "inOutCubic"
         z_index: 2
         operations:
@@ -178,7 +178,7 @@ timelines:
 
       - id: "move_sun"
         start: 0
-        end: 3
+        end: 3.5
         z_index: 0
         loop: true
         operations:
