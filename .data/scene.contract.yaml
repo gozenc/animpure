@@ -44,14 +44,14 @@ objects:
 
   - id: "fork_wire"
     shape: "straight"
-    coords: "300 295 | 300 600"
+    coords: "300 233 | 300 400"
     forks:
       - id: "fork_1"
-        coords: "300 600 | 350 600"
+        coords: "300 400 | 350 400"
       - id: "fork_2"
-        coords: "300 600 | 300 650"
+        coords: "300 400 | 300 450"
       - id: "fork_3"
-        coords: "300 600 | 250 600"
+        coords: "300 400 | 250 400"
     style:
       fill: "none"
       stroke: "#008080"
@@ -139,8 +139,8 @@ timelines:
               transition: "color"
 
       - id: "fork_branch"
-        start: 1
-        end: 3
+        start: 2
+        end: 5
         ease: "inOutCubic"
         z_index: 2
         operations:
@@ -161,7 +161,7 @@ timelines:
             location: "20 170 -> 20 -200"
           - name: "move"
             select: "fork_wire"
-            location: "300 295 -> 300 0"
+            location: "300 290 -> 300 -80"
 
       - id: "move_sun"
         start: 0
@@ -171,4 +171,4 @@ timelines:
         operations:
           - name: "move"
             select: "my_ellipse"
-            location: "-250 0 -> 850 0"
+            location: "-250 70 -> 850 70"
