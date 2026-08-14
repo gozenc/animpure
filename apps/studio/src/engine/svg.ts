@@ -178,6 +178,26 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
         .timeline(timeline)
         .transform({ translate: [object.position.x, object.position.y] })
         .attr('data-object-id', object.id)
+      const distance = Math.hypot(object.size.x, object.size.y)
+      const gradient = object.animation
+        ? draw.gradient('linear', (shimmer) => {
+            const fill = object.style.fill ?? '#e2e2e2'
+            shimmer.stop(0, fill)
+            shimmer.stop(0.5, `color-mix(in srgb, ${fill}, white ${object.animation!.opacity * 100}%)`)
+            shimmer.stop(1, fill)
+          }).attr({
+            gradientUnits: 'userSpaceOnUse',
+            gradientTransform: `rotate(${object.animation.angle} ${object.size.x / 2} ${object.size.y / 2})`,
+            x1: -distance,
+            x2: 0,
+            y1: object.size.y / 2,
+            y2: object.size.y / 2,
+          }).timeline(timeline)
+        : undefined
+      const shimmer = gradient?.animate(object.animation!.duration * 1000, 0, 'absolute')
+        .ease('-')
+        .attr({ x1: distance, x2: distance * 2 })
+      if (object.animation?.loop) shimmer!.loop()
       const height = (object.size.y - object.style.gap * (object.rows.length - 1))
         / object.rows.length
       object.rows.forEach((row, index) => {
@@ -187,6 +207,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
           .attr('data-object-id', row.id)
         if (object.style.rounded !== undefined) rect.radius(object.style.rounded)
         applyStyle(rect, object.style)
+        if (gradient) rect.fill(gradient)
         elements.set(row.id, rect)
       })
       elements.set(object.id, group)

@@ -55,6 +55,13 @@ export type SkeletonObject = {
   shape: 'skeleton'
   position: Point
   size: Point
+  animation?: {
+    name: 'shimmer'
+    angle: number
+    opacity: number
+    duration: number
+    loop: boolean
+  }
   rows: { id: string; width: number }[]
   style: ShapeStyle & {
     gap: number
@@ -281,6 +288,24 @@ const scalarTransition = (value: unknown, label: string) => {
   return { start: Number(parts[0]), end: Number(parts[1]) }
 }
 
+const compileSkeletonAnimation = (value: unknown, label: string): SkeletonObject['animation'] => {
+  if (value === undefined) return
+  const source = object(value, label)
+  const name = string(source.name, `${label}.name`)
+  if (name !== 'shimmer') throw new RangeError(`Unsupported skeleton animation: ${name}`)
+  const opacity = number(source.opacity, `${label}.opacity`)
+  const duration = number(source.duration, `${label}.duration`)
+  if (opacity < 0 || opacity > 1) throw new RangeError(`${label}.opacity must be between 0 and 1`)
+  if (duration <= 0) throw new RangeError(`${label}.duration must be greater than 0`)
+  return {
+    name,
+    angle: number(source.angle, `${label}.angle`),
+    opacity,
+    duration,
+    loop: boolean(source.loop, `${label}.loop`),
+  }
+}
+
 const compileStyle = (value: unknown, label: string, shape: SceneObject['shape']) => {
   if (value === undefined) return {}
 
@@ -421,6 +446,9 @@ export function compileScene(value: unknown): CompiledScene {
       return {
         ...base,
         shape,
+        ...(source.animation === undefined
+          ? {}
+          : { animation: compileSkeletonAnimation(source.animation, `${id}.animation`) }),
         rows,
         style: { ...style, gap, align: style.align ?? 'left' },
       } satisfies SkeletonObject

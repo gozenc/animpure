@@ -36,6 +36,12 @@ objects:
 
   - id: "first_branch_prompt_skeleton"
     shape: "skeleton"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 2
+      loop: true
     position: "120 200"
     size: "100 50"
     rows:
@@ -52,6 +58,12 @@ objects:
   - id: "first_branch_response_skeleton"
     shape: "skeleton"
     position: "100 260"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 2
+      loop: true
     size: "100 50"
     rows:
       - id: "first_branch_response_skeleton_1"
