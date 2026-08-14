@@ -1,4 +1,4 @@
-import { SVG, Timeline, type Element, type G } from '@svgdotjs/svg.js'
+import { SVG, Timeline, type Container, type Element, type G } from '@svgdotjs/svg.js'
 import { Eases } from './eases.ts'
 import type { CompiledScene, Point, SceneObject } from './scene.ts'
 
@@ -71,6 +71,11 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
   }
   const timeline = new Timeline(() => 0).persist(true).pause().time(0)
   const layers = new Map(scene.objects.map((object) => [object.id, 0]))
+  const groupMembers = new Map<string, string[]>()
+  for (const object of scene.objects) {
+    if (!object.group) continue
+    groupMembers.set(object.group, [...groupMembers.get(object.group) ?? [], object.id])
+  }
   const owners = new Map<string, string>()
   for (const object of scene.objects) {
     if (object.shape === 'straight' || object.shape === 'curve') {
@@ -86,12 +91,16 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     for (const moment of moments) {
       for (const operation of moment.operations) {
         const objectId = owners.get(operation.objectId) ?? operation.objectId
-        layers.set(objectId, Math.max(layers.get(objectId)!, moment.zIndex))
+        for (const target of groupMembers.get(objectId) ?? [objectId]) {
+          layers.set(target, Math.max(layers.get(target)!, moment.zIndex))
+        }
       }
     }
   }
 
   const elements = new Map<string, Element>()
+  const groupElements = new Map<string, G>()
+  const groupOrigins = new Map<string, Point>()
   const paths = new Map<string, { element: Element; length: number }[]>()
   const pathOrigins = new Map<string, Point>()
   const textboxes = new Map<string, {
@@ -100,11 +109,22 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     graphemes: string[]
     size: Point
   }>()
-  for (const object of [...scene.objects].sort(
-    (left, right) => layers.get(left.id)! - layers.get(right.id)!,
-  )) {
+  const layer = (object: SceneObject) => object.group
+    ? Math.max(...groupMembers.get(object.group)!.map((id) => layers.get(id)!))
+    : layers.get(object.id)!
+  for (const object of [...scene.objects].sort((left, right) => layer(left) - layer(right))) {
+    let parent: Container = draw
+    if (object.group) {
+      let group = groupElements.get(object.group)
+      if (!group) {
+        group = draw.group().timeline(timeline).attr('data-object-id', object.group)
+        groupElements.set(object.group, group)
+        elements.set(object.group, group)
+      }
+      parent = group
+    }
     if (object.shape === 'textbox') {
-      const element = draw.group()
+      const element = parent.group()
       if (object.style.background !== undefined) {
         element.rect(object.size.x, object.size.y)
           .fill(object.style.background)
@@ -149,7 +169,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     }
 
     if (object.shape === 'straight' || object.shape === 'curve') {
-      const group = draw.group()
+      const group = parent.group()
         .timeline(timeline)
         .attr('data-object-id', object.id)
       const parts = [
@@ -174,7 +194,7 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     }
 
     if (object.shape === 'skeleton') {
-      const group = draw.group()
+      const group = parent.group()
         .timeline(timeline)
         .transform({ translate: [object.position.x, object.position.y] })
         .attr('data-object-id', object.id)
@@ -216,11 +236,11 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
 
     let element: Element
     if (object.shape === 'rect') {
-      const rect = draw.rect(object.size.x, object.size.y)
+      const rect = parent.rect(object.size.x, object.size.y)
       if (object.style.rounded !== undefined) rect.radius(object.style.rounded)
       element = rect
     } else {
-      element = draw.ellipse(object.size.x, object.size.y)
+      element = parent.ellipse(object.size.x, object.size.y)
     }
 
     element
@@ -231,6 +251,10 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
     }
     applyStyle(element, object.style)
     elements.set(object.id, element)
+  }
+  for (const [id, group] of groupElements) {
+    const { x, y } = group.bbox()
+    groupOrigins.set(id, { x, y })
   }
 
   for (const { moments } of scene.timelines) {
@@ -279,10 +303,27 @@ export function mountScene(container: HTMLElement, scene: CompiledScene) {
                 operation.location.end.y - origin.y,
               ],
             })
+          } else if (groupOrigins.has(operation.objectId)) {
+            const origin = groupOrigins.get(operation.objectId)!
+            element.transform({
+              translate: [
+                operation.location.start.x - origin.x,
+                operation.location.start.y - origin.y,
+              ],
+            })
+            runner.transform({
+              translate: [
+                operation.location.end.x - origin.x,
+                operation.location.end.y - origin.y,
+              ],
+            })
           } else {
             element.move(operation.location.start.x, operation.location.start.y)
             runner.move(operation.location.end.x, operation.location.end.y)
           }
+        } else if (operation.name === 'fadeIn') {
+          element.opacity(0)
+          runner.opacity(1)
         } else if (operation.name === 'scale') {
           element.size(operation.dimensions.start.x, operation.dimensions.start.y)
           if (operation.location) element.move(operation.location.x, operation.location.y)

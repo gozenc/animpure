@@ -98,6 +98,10 @@ export type CompiledOperation =
       objectId: string
     }
   | {
+      name: 'fadeIn'
+      objectId: string
+    }
+  | {
       name: 'underline'
       objectId: string
       match: string
@@ -484,6 +488,11 @@ export function compileScene(value: unknown): CompiledScene {
         : []),
   ]))
   const objectsById = new Map(objects.map((object) => [object.id, object]))
+  const groups = new Set(objects.flatMap((object) => object.group ? [object.group] : []))
+  for (const group of groups) {
+    if (objectIds.has(group)) throw new RangeError(`Duplicate object id: ${group}`)
+    objectIds.add(group)
+  }
 
   const momentIds = new Set<string>()
   const timelines = array(root.timelines, 'timelines').map((entry, timelineIndex) => {
@@ -548,6 +557,7 @@ export function compileScene(value: unknown): CompiledScene {
             }
             return { name, objectId }
           }
+          if (name === 'fadeIn') return { name, objectId }
           if (name === 'underline' || name === 'mark') {
             const selected = objectsById.get(objectId)!
             if (selected.shape !== 'textbox') {
@@ -641,9 +651,11 @@ export function compileScene(value: unknown): CompiledScene {
         objectId,
         property: operation.name === 'move'
           ? 'location'
-          : operation.name === 'draw'
-            ? 'stroke-dashoffset'
-            : operation.name === 'typewriter'
+            : operation.name === 'draw'
+              ? 'stroke-dashoffset'
+              : operation.name === 'fadeIn'
+                ? 'opacity'
+              : operation.name === 'typewriter'
               ? 'content'
             : operation.name === 'font-resize'
                 ? 'font-size'

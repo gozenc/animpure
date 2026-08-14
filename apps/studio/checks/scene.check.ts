@@ -179,6 +179,26 @@ assert.deepEqual(skeleton.style, { fill: 'red', gap: 8, align: 'right' })
 assert.deepEqual(skeleton.animation, {
   name: 'shimmer', angle: 45, opacity: 0.5, duration: 2, loop: true,
 })
+const grouped = compileScene({
+  ...scene,
+  objects: [
+    { id: 'frame', shape: 'rect', size: '100', group: 'g:branch' },
+    { id: 'body', shape: 'rect', size: '50', group: 'g:branch' },
+  ],
+  timelines: [{
+    id: 'main',
+    moments: [{
+      id: 'show-group',
+      start: 0,
+      end: 1,
+      operations: [
+        { name: 'move', select: 'g:branch', location: '0 -> 10' },
+        { name: 'fadeIn', select: 'g:branch' },
+      ],
+    }],
+  }],
+}).timelines[0].moments[0].operations
+assert.deepEqual(grouped.map((operation) => operation.name), ['move', 'fadeIn'])
 const curve = compileScene({
   ...scene,
   timelines: [],

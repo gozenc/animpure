@@ -2,7 +2,7 @@ name: "scene-1"
 
 scene:
   unit: "px"
-  max_time: 7
+  max_time: 12
   precision: 1
   size: "600 400"
   style:
@@ -101,6 +101,53 @@ objects:
       fill: "none"
       stroke-width: 2.5
 
+  - id: "second_branch_prompt_skeleton"
+    shape: "skeleton"
+    group: "g:second_branch"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 1
+      loop: true
+    position: "260 70"
+    size: "100 35"
+    rows:
+      - id: "second_branch_prompt_skeleton_1"
+        width: 80
+      - id: "second_branch_prompt_skeleton_2"
+      - id: "second_branch_prompt_skeleton_3"
+        width: 35
+    style:
+      fill: "#b2dbdb"
+      gap: 5
+      align: "right"
+
+  - id: "second_branch_response_skeleton"
+    shape: "skeleton"
+    group: "g:second_branch"
+    position: "235 120"
+    size: "120 68"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 2
+      loop: true
+    rows:
+      - id: "second_branch_response_skeleton_1"
+        width: "70%"
+      - id: "second_branch_response_skeleton_2"
+      - id: "second_branch_response_skeleton_3"
+        width: "60%"
+      - id: "second_branch_response_skeleton_4"
+        width: "85%"
+      - id: "second_branch_response_skeleton_5"
+        width: "75%"
+    style:
+      fill: "#008080"
+      gap: 5
+
   - id: "third_branch_frame"
     shape: "rect"
     size: "150 200"
@@ -110,6 +157,53 @@ objects:
       stroke: "#008080"
       fill: "none"
       stroke-width: 2.5
+
+  - id: "third_branch_prompt_skeleton"
+    shape: "skeleton"
+    group: "g:third_branch"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 1
+      loop: true
+    position: "447 70"
+    size: "100 35"
+    rows:
+      - id: "third_branch_prompt_skeleton_1"
+        width: 80
+      - id: "third_branch_prompt_skeleton_2"
+      - id: "third_branch_prompt_skeleton_3"
+        width: 35
+    style:
+      fill: "#b2dbdb"
+      gap: 5
+      align: "right"
+
+  - id: "third_branch_response_skeleton"
+    shape: "skeleton"
+    position: "423 120"
+    group: "g:third_branch"
+    size: "120 68"
+    animation:
+      name: "shimmer"
+      angle: 45
+      opacity: 0.5
+      duration: 2
+      loop: true
+    rows:
+      - id: "third_branch_response_skeleton_1"
+        width: "70%"
+      - id: "third_branch_response_skeleton_2"
+      - id: "third_branch_response_skeleton_3"
+        width: "60%"
+      - id: "third_branch_response_skeleton_4"
+        width: "85%"
+      - id: "third_branch_response_skeleton_5"
+        width: "75%"
+    style:
+      fill: "#008080"
+      gap: 5
 
   - id: "fork_wire"
     shape: "straight"
@@ -246,20 +340,20 @@ timelines:
             select: "fork_3"
 
       - id: "branches_appear"
-        start: 4
+        start: 5
         end: 6
         ease: "inOutCubic"
         z_index: 2
         operations:
           - name: "move"
             select: "g:first_branch"
-            location: "35 28 -> 35 58"
+            location: "35 78 -> 35 58"
           - name: "move"
             select: "g:second_branch"
-            location: "223 38 -> 223 58"
+            location: "223 98 -> 223 58"
           - name: "move"
             select: "g:third_branch"
-            location: "410 48 -> 410 58"
+            location: "410 118 -> 410 58"
           - name: "fadeIn"
             select: "g:first_branch"
           - name: "fadeIn"
@@ -267,9 +361,53 @@ timelines:
           - name: "fadeIn"
             select: "g:third_branch"
 
+      - id: "prompts_appear"
+        start: 6
+        end: 6.5
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "move"
+            select: "first_branch_prompt_skeleton"
+            location: "10 0 -> 0 0"
+          - name: "move"
+            select: "second_branch_prompt_skeleton"
+            location: "10 0 -> 0 0"
+          - name: "move"
+            select: "third_branch_prompt_skeleton"
+            location: "10 0 -> 0 0"
+          - name: "fadeIn"
+            select: "first_branch_prompt_skeleton"
+          - name: "fadeIn"
+            select: "second_branch_prompt_skeleton"
+          - name: "fadeIn"
+            select: "third_branch_prompt_skeleton"
+
+      - id: "responses_appear"
+        start: 6
+        end: 7.5
+        ease: "inOutCubic"
+        z_index: 2
+        operations:
+          - name: "move"
+            select: "first_branch_response_skeleton"
+            location: "-10 0 -> 0 0"
+          - name: "move"
+            select: "second_branch_response_skeleton"
+            location: "-10 0 -> 0 0"
+          - name: "move"
+            select: "third_branch_response_skeleton"
+            location: "-10 0 -> 0 0"
+          - name: "fadeIn"
+            select: "first_branch_response_skeleton"
+          - name: "fadeIn"
+            select: "second_branch_response_skeleton"
+          - name: "fadeIn"
+            select: "third_branch_response_skeleton"
+
       - id: "loop_the_circle"
         start: 0
-        end: 3.5
+        end: 4
         z_index: 0
         loop: true
         operations:
