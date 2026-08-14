@@ -225,7 +225,13 @@ Object.assign(globalThis, {
 const unregister = registerStudioTools({
   getYaml: () => 'before',
   setYaml: (yaml) => yaml === 'broken' ? 'invalid YAML' : undefined,
-  exportJpeg: async () => ({ fileName: 'scene.jpg', width: 600, height: 400 }),
+  exportJpeg: async () => ({
+    fileName: 'scene.jpg',
+    mimeType: 'image/jpeg',
+    width: 600,
+    height: 400,
+    dataUrl: 'data:image/jpeg;base64,',
+  }),
   control: ({ action }) => ({ action }),
 })
 await new Promise(queueMicrotask)

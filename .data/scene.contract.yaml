@@ -91,7 +91,7 @@ timelines:
             select: "first_response"
             size: "24 -> 36"
 
-      - id: "underline_mark_responses"
+      - id: "underline_response"
         start: 2
         end: 2.6
         ease: "inOutCubic"
@@ -103,21 +103,18 @@ timelines:
             style:
               color: "#008080"
               stroke-width: 3
-              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "regular income"
             style:
               color: "#008080"
               stroke-width: 3
-              stroke-linecap: "round"
           - name: "underline"
             select: "first_response"
             match: "growth"
             style:
               color: "#008080"
               stroke-width: 3
-              stroke-linecap: "round"
           - name: "mark"
             select: "first_response"
             match: "regular income"

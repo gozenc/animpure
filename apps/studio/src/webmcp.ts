@@ -20,7 +20,13 @@ declare global {
 type StudioTools = {
   getYaml: () => string
   setYaml: (yaml: string) => string | undefined
-  exportJpeg: () => Promise<{ fileName: string; width: number; height: number }>
+  exportJpeg: () => Promise<{
+    fileName: string
+    mimeType: string
+    width: number
+    height: number
+    dataUrl: string
+  }>
   control: (input: { action?: unknown; time?: unknown; enabled?: unknown }) => unknown
 }
 
@@ -60,7 +66,7 @@ export function registerStudioTools(tools: StudioTools) {
     }, { signal: controller.signal }),
     document.modelContext.registerTool({
       name: 'scene_export',
-      description: 'Rasterize the current scene frame to JPEG and download it in the browser.',
+      description: 'Rasterize the current scene frame to JPEG and return a data URL the calling agent can download.',
       inputSchema: { type: 'object', properties: {} },
       execute: async () => tools.exportJpeg(),
       annotations: { readOnlyHint: false },

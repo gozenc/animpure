@@ -5,6 +5,7 @@ import { Pause, Repeat2, SkipBack } from 'lucide-react'
 import contract from '../../../.data/scene.contract.yaml?raw'
 import { mountScene } from './engine/svg.ts'
 import { compileYaml } from './engine/yaml.ts'
+import { exportSceneJpeg } from './engine/jpeg.ts'
 import { bindEditorShortcuts, configureYamlEditor } from './monaco.ts'
 import { registerStudioTools } from './webmcp.ts'
 
@@ -147,33 +148,7 @@ function App() {
   useEffect(() => registerStudioTools({
     getYaml: () => editor.current?.getValue() ?? sourceRef.current,
     setYaml: (yaml) => editRef.current(yaml),
-    exportJpeg: async () => {
-      const svg = player.current!.draw.node as SVGSVGElement
-      svg.setAttribute('width', String(sceneRef.current.size.x))
-      svg.setAttribute('height', String(sceneRef.current.size.y))
-      const imageUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], {
-        type: 'image/svg+xml',
-      }))
-      const image = new Image()
-      image.src = imageUrl
-      await image.decode()
-      const canvas = document.createElement('canvas')
-      canvas.width = sceneRef.current.size.x
-      canvas.height = sceneRef.current.size.y
-      const context = canvas.getContext('2d')!
-      context.fillStyle = sceneRef.current.style.background ?? '#ffffff'
-      context.fillRect(0, 0, canvas.width, canvas.height)
-      context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(imageUrl)
-      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((value) => resolve(value!), 'image/jpeg', 0.92))
-      const fileName = `${sceneRef.current.name}.jpg`
-      const download = document.createElement('a')
-      download.href = URL.createObjectURL(blob)
-      download.download = fileName
-      download.click()
-      URL.revokeObjectURL(download.href)
-      return { fileName, width: canvas.width, height: canvas.height }
-    },
+    exportJpeg: () => exportSceneJpeg(player.current!.draw.node as SVGSVGElement, sceneRef.current),
     control: (input) => controlRef.current(input),
   }), [])
 
